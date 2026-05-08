@@ -2,65 +2,134 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>My Touring Archive</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Riding Archive</title>
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; font-family: sans-serif; }
-        #map { height: 100vh; width: 100%; }
-        .info-panel {
-            position: absolute; top: 10px; right: 10px; z-index: 1000;
-            background: white; padding: 15px; border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-width: 250px;
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Pretendard', sans-serif; }
+        #map { height: 100vh; width: 100%; z-index: 1; }
+        
+        .ui-panel {
+            position: absolute; top: 20px; left: 20px; z-index: 1000;
+            background: rgba(255, 255, 255, 0.9); padding: 20px;
+            border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            max-width: 300px; backdrop-filter: blur(5px);
         }
+        h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #333; }
+        #status { font-size: 0.85rem; color: #666; margin-bottom: 10px; }
+        .track-list { 
+            max-height: 200px; overflow-y: auto; font-size: 0.8rem; 
+            border-top: 1px solid #ddd; padding-top: 10px;
+        }
+        .track-item { padding: 4px 0; border-bottom: 1px solid #eee; color: #444; }
     </style>
 </head>
 <body>
 
-<div id="map"></div>
-<div class="info-panel">
-    <h3>🏍️ 투어 기록</h3>
-    <div id="track-info">파일을 선택하면 정보가 표시됩니다.</div>
+<div class="ui-panel">
+    <h2>🏍️ 투어 로그 아카이브</h2>
+    <div id="status">경로를 찾는 중...</div>
+    <div class="track-list" id="track-list"></div>
 </div>
 
+<div id="map"></div>
+
+<!-- Leaflet & GPX Plugin -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>
 
 <script>
-    var map = L.map('map').setView([36.5, 127.5], 7); // 한국 중심
+    // --------------------------------------------------
+    // 1. 설정 (본인의 정보로 반드시 수정하세요)
+    // --------------------------------------------------
+    const CONFIG = {
+        owner: 'YOUR_GITHUB_ID',  // GitHub 사용자 아이디
+        repo: 'YOUR_REPO_NAME',   // 리파지토리 이름 (예: my-tour-log)
+        branch: 'main',           // 브랜치 이름
+        basePath: 'tracks'        // GPX 파일이 저장된 루트 폴더
+    };
 
+    // 지도 초기화
+    var map = L.map('map').setView([36.5, 127.5], 7); 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // 기록하고 싶은 GPX 파일 경로 (파일을 새로 올릴 때마다 여기에 추가)
-    const trackFiles = [
-        'tracks/2026-05-08-sample.gpx'
-    ];
+    // --------------------------------------------------
+    // 2. GitHub API를 통해 재귀적으로 파일 목록 가져오기
+    // --------------------------------------------------
+    async function fetchAllGpxFiles(path) {
+        const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${path}?ref=${CONFIG.branch}`;
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('API 호출 실패');
+            const items = await response.json();
+            let files = [];
 
-    function loadTrack(url) {
-        new L.GPX(url, {
-            async: true,
-            marker_options: {
-                startIconUrl: 'https://cdn.rawgit.com/mpetazzoni/leaflet-gpx/master/pin-icon-start.png',
-                endIconUrl: 'https://cdn.rawgit.com/mpetazzoni/leaflet-gpx/master/pin-icon-end.png',
-                shadowUrl: 'https://cdn.rawgit.com/mpetazzoni/leaflet-gpx/master/pin-shadow.png'
-            },
-            polyline_options: { color: 'blue', opacity: 0.75, weight: 5 }
-        }).on('loaded', function(e) {
-            var gpx = e.target;
-            map.fitBounds(gpx.getBounds());
-            
-            // 우측 패널에 투어 정보 요약 표시
-            document.getElementById('track-info').innerHTML = `
-                <p><b>거리:</b> ${(gpx.get_distance() / 1000).toFixed(2)} km</p>
-                <p><b>최고 고도:</b> ${gpx.get_elevation_max().toFixed(0)} m</p>
-                <p><b>이동 시간:</b> ${gpx.get_duration_string(gpx.get_moving_time())}</p>
-            `;
-        }).addTo(map);
+            for (let item of items) {
+                if (item.type === 'dir') {
+                    // 하위 폴더인 경우 재귀 호출 (2026 -> 04 -> 02 순차 탐색)
+                    const subFiles = await fetchAllGpxFiles(item.path);
+                    files = files.concat(subFiles);
+                } else if (item.name.toLowerCase().endsWith('.gpx')) {
+                    // GPX 파일인 경우 실제 데이터 주소(Raw) 생성
+                    files.push({
+                        name: item.name,
+                        path: item.path,
+                        url: `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${item.path}`
+                    });
+                }
+            }
+            return files;
+        } catch (e) {
+            console.error(e);
+            return [];
+        }
     }
 
-    // 첫 번째 파일 자동 로드 (예시)
-    if(trackFiles.length > 0) loadTrack(trackFiles[0]);
+    // --------------------------------------------------
+    // 3. 지도에 경로 표시 및 UI 업데이트
+    // --------------------------------------------------
+    async function init() {
+        const statusEl = document.getElementById('status');
+        const listEl = document.getElementById('track-list');
+
+        const gpxFiles = await fetchAllGpxFiles(CONFIG.basePath);
+        
+        if (gpxFiles.length === 0) {
+            statusEl.innerText = "표시할 GPX 파일이 없습니다.";
+            return;
+        }
+
+        statusEl.innerText = `총 ${gpxFiles.length}개의 경로 로드 중...`;
+
+        // 최신 경로가 위로 오도록 정렬 (문자열 기준 정렬)
+        gpxFiles.sort((a, b) => b.path.localeCompare(a.path));
+
+        gpxFiles.forEach((file, index) => {
+            // 지도에 선 그리기
+            new L.GPX(file.url, {
+                async: true,
+                marker_options: { startIconUrl: null, endIconUrl: null, shadowUrl: null },
+                polyline_options: { color: 'blue', weight: 3, opacity: 0.5 }
+            }).on('loaded', function(e) {
+                // 첫 번째(가장 최신) 경로로 지도 시점 맞추기
+                if(index === 0) map.fitBounds(e.target.getBounds());
+            }).addTo(map);
+
+            // 목록 UI에 추가
+            const item = document.createElement('div');
+            item.className = 'track-item';
+            item.innerText = file.path.replace(CONFIG.basePath + '/', '');
+            listEl.appendChild(item);
+        });
+
+        statusEl.innerText = `총 ${gpxFiles.length}개의 경로 표시 완료`;
+    }
+
+    init();
 </script>
+
 </body>
 </html>
