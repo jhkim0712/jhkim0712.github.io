@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Riding Archive</title>
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body, html { margin: 0; padding: 0; height: 100%; font-family: 'Pretendard', sans-serif; }
@@ -22,7 +21,18 @@
             max-height: 200px; overflow-y: auto; font-size: 0.8rem; 
             border-top: 1px solid #ddd; padding-top: 10px;
         }
-        .track-item { padding: 4px 0; border-bottom: 1px solid #eee; color: #444; }
+        .track-item { padding: 4px 0; border-bottom: 1px solid #eee; color: #444; cursor: pointer; }
+        .track-item:hover { color: #007bff; font-weight: bold; }
+
+        /* 툴팁 스타일 커스텀 */
+        .custom-tooltip {
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -35,45 +45,33 @@
 
 <div id="map"></div>
 
-<!-- Leaflet & GPX Plugin -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>
 
 <script>
-    // --------------------------------------------------
-    // 1. 설정 (본인의 정보로 반드시 수정하세요)
-    // --------------------------------------------------
     const CONFIG = {
-        owner: 'jhkim0712',  // GitHub 사용자 아이디
-        repo: 'jhkim0712.github.io',   // 리파지토리 이름 (예: my-tour-log)
-        branch: 'main',           // 브랜치 이름
-        basePath: 'tracks'        // GPX 파일이 저장된 루트 폴더
+        owner: 'YOUR_GITHUB_ID', 
+        repo: 'YOUR_REPO_NAME', 
+        branch: 'main',          
+        basePath: 'tracks'       
     };
 
-    // 지도 초기화
     var map = L.map('map').setView([36.5, 127.5], 7); 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // --------------------------------------------------
-    // 2. GitHub API를 통해 재귀적으로 파일 목록 가져오기
-    // --------------------------------------------------
     async function fetchAllGpxFiles(path) {
         const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${path}?ref=${CONFIG.branch}`;
         try {
             const response = await fetch(url);
-            if (!response.ok) throw new Error('API 호출 실패');
             const items = await response.json();
             let files = [];
-
             for (let item of items) {
                 if (item.type === 'dir') {
-                    // 하위 폴더인 경우 재귀 호출 (2026 -> 04 -> 02 순차 탐색)
                     const subFiles = await fetchAllGpxFiles(item.path);
                     files = files.concat(subFiles);
                 } else if (item.name.toLowerCase().endsWith('.gpx')) {
-                    // GPX 파일인 경우 실제 데이터 주소(Raw) 생성
                     files.push({
                         name: item.name,
                         path: item.path,
@@ -88,48 +86,63 @@
         }
     }
 
-    // --------------------------------------------------
-    // 3. 지도에 경로 표시 및 UI 업데이트
-    // --------------------------------------------------
     async function init() {
         const statusEl = document.getElementById('status');
         const listEl = document.getElementById('track-list');
-
         const gpxFiles = await fetchAllGpxFiles(CONFIG.basePath);
         
         if (gpxFiles.length === 0) {
-            statusEl.innerText = "표시할 GPX 파일이 없습니다.";
+            statusEl.innerText = "GPX 파일을 찾을 수 없습니다.";
             return;
         }
 
-        statusEl.innerText = `총 ${gpxFiles.length}개의 경로 로드 중...`;
-
-        // 최신 경로가 위로 오도록 정렬 (문자열 기준 정렬)
         gpxFiles.sort((a, b) => b.path.localeCompare(a.path));
 
         gpxFiles.forEach((file, index) => {
-            // 지도에 선 그리기
-            new L.GPX(file.url, {
+            const gpxLayer = new L.GPX(file.url, {
                 async: true,
                 marker_options: { startIconUrl: null, endIconUrl: null, shadowUrl: null },
-                polyline_options: { color: 'blue', weight: 3, opacity: 0.5 }
-            }).on('loaded', function(e) {
-                // 첫 번째(가장 최신) 경로로 지도 시점 맞추기
-                if(index === 0) map.fitBounds(e.target.getBounds());
+                polyline_options: { color: '#3388ff', weight: 4, opacity: 0.6 }
+            });
+
+            gpxLayer.on('loaded', function(e) {
+                const layer = e.target;
+                const fileName = file.path.split('/').pop(); // 경로에서 파일명만 추출
+
+                // 1. 마우스 올렸을 때 이벤트
+                layer.on('mouseover', function() {
+                    this.setStyle({ color: '#ff4400', weight: 7, opacity: 1 }); // 강조 색상
+                    this.bindTooltip(fileName, { 
+                        sticky: true, 
+                        direction: 'top', 
+                        className: 'custom-tooltip' 
+                    }).openTooltip();
+                });
+
+                // 2. 마우스 뗐을 때 이벤트
+                layer.on('mouseout', function() {
+                    this.setStyle({ color: '#3388ff', weight: 4, opacity: 0.6 }); // 원래 색상
+                    this.closeTooltip();
+                });
+
+                if(index === 0) map.fitBounds(layer.getBounds());
             }).addTo(map);
 
-            // 목록 UI에 추가
+            // 목록 생성
             const item = document.createElement('div');
             item.className = 'track-item';
             item.innerText = file.path.replace(CONFIG.basePath + '/', '');
+            item.onclick = () => {
+                // 리스트 클릭 시 해당 경로로 이동하는 기능 추가
+                map.fitBounds(gpxLayer.getBounds());
+            };
             listEl.appendChild(item);
         });
 
-        statusEl.innerText = `총 ${gpxFiles.length}개의 경로 표시 완료`;
+        statusEl.innerText = `총 ${gpxFiles.length}개의 투어 로드 완료`;
     }
 
     init();
 </script>
-
 </body>
 </html>
