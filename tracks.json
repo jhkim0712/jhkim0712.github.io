@@ -1,10 +1,16 @@
 [
   {
     "path": "tracks/2026/03/15/260315_Yeongjongdo.gpx",
-    "description": "영종도 라이딩"
+    "title": "영종도",
+    "description": "해안 도로를 따라 달린 영종도 라이딩",
+    "date": "2026-03-15",
+    "region": "인천"
   },
   {
     "path": "tracks/2026/03/15/260315_Yeongjongdo_Muuido.gpx",
-    "description": "영종도·무의도 라이딩"
+    "title": "영종도 · 무의도",
+    "description": "섬 풍경을 즐기며 이어 달린 영종도·무의도 라이딩",
+    "date": "2026-03-15",
+    "region": "인천"
   }
 ]
