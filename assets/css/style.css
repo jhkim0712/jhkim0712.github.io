@@ -113,6 +113,18 @@ h2 {
     margin-bottom: 6px;
 }
 
+.track-bike {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #1d4ed8;
+    background: #eef4ff;
+    border: 1px solid #dbe6ff;
+    border-radius: 999px;
+    padding: 2px 8px;
+    margin-bottom: 6px;
+}
+
 .track-description {
     font-size: 0.78rem;
     color: #666;
