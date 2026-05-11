@@ -6,45 +6,157 @@
     <title>My Riding Archive</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Pretendard', sans-serif; }
-        #map { height: 100vh; width: 100%; z-index: 1; }
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Pretendard', sans-serif;
+            background: #f6f7fb;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100%;
+            z-index: 1;
+        }
 
         .ui-panel {
-            position: absolute; top: 20px; left: 20px; z-index: 1000;
-            background: rgba(255, 255, 255, 0.9); padding: 20px;
-            border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-            max-width: 300px; backdrop-filter: blur(5px);
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            width: 340px;
+            max-width: calc(100vw - 40px);
+            background: rgba(255, 255, 255, 0.92);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            backdrop-filter: blur(10px);
         }
-        h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #333; }
-        #status { font-size: 0.85rem; color: #666; margin-bottom: 10px; }
-        .track-list {
-            max-height: 240px; overflow-y: auto; font-size: 0.8rem;
-            border-top: 1px solid #ddd; padding-top: 10px;
+
+        h2 {
+            margin: 0 0 8px 0;
+            font-size: 1.25rem;
+            color: #222;
         }
-        .track-item {
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
-            color: #444;
-            cursor: pointer;
-        }
-        .track-item:hover { color: #007bff; }
-        .track-name {
-            font-weight: bold;
-            margin-bottom: 2px;
-        }
-        .track-description {
-            font-size: 0.75rem;
+
+        #status {
+            font-size: 0.85rem;
             color: #666;
-            line-height: 1.4;
+            margin-bottom: 12px;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .search-input {
+            flex: 1;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 0.85rem;
+            outline: none;
+            background: #fff;
+        }
+
+        .search-input:focus {
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96,165,250,0.15);
+        }
+
+        .track-list {
+            max-height: 60vh;
+            overflow-y: auto;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 10px;
+        }
+
+        .track-year-group {
+            margin-bottom: 14px;
+        }
+
+        .track-year-heading {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #4b5563;
+            margin: 10px 0 8px;
+            padding-left: 2px;
+        }
+
+        .track-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid #ececec;
+            border-radius: 12px;
+            background: #fff;
+            cursor: pointer;
+            transition: all 0.18s ease;
+        }
+
+        .track-item:hover {
+            transform: translateY(-1px);
+            border-color: #b8d4ff;
+            box-shadow: 0 6px 18px rgba(0,123,255,0.08);
+        }
+
+        .track-item.active {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.14);
+            background: #f8fbff;
+        }
+
+        .track-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #222;
+            margin-bottom: 6px;
+        }
+
+        .track-meta {
+            font-size: 0.72rem;
+            color: #4b5563;
+            margin-bottom: 6px;
+        }
+
+        .track-description {
+            font-size: 0.78rem;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .empty-message {
+            font-size: 0.82rem;
+            color: #6b7280;
+            padding: 12px 4px;
         }
 
         .custom-tooltip {
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.82);
             color: white;
             border: none;
-            border-radius: 4px;
-            padding: 5px 10px;
-            font-weight: bold;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-weight: 600;
+            font-size: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        @media (max-width: 768px) {
+            .ui-panel {
+                left: 12px;
+                right: 12px;
+                top: 12px;
+                width: auto;
+                max-width: none;
+                padding: 16px;
+            }
+
+            .track-list {
+                max-height: 40vh;
+            }
         }
     </style>
 </head>
@@ -53,6 +165,9 @@
 <div class="ui-panel">
     <h2>🏍️ 투어 로그 아카이브</h2>
     <div id="status">경로를 불러오는 중...</div>
+    <div class="toolbar">
+        <input id="search-input" class="search-input" type="text" placeholder="제목, 지역, 설명으로 검색" />
+    </div>
     <div class="track-list" id="track-list"></div>
 </div>
 
@@ -70,6 +185,13 @@
     };
 
     const map = L.map('map').setView([36.5, 127.5], 7);
+    const searchInput = document.getElementById('search-input');
+    const trackListEl = document.getElementById('track-list');
+    const statusEl = document.getElementById('status');
+
+    let allTracks = [];
+    let activeTrackPath = null;
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
     }).addTo(map);
@@ -78,13 +200,58 @@
         return `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${path}`;
     }
 
-    function getDisplayName(track) {
-        return track.name || track.title || track.path.split('/').pop();
+    function getDisplayTitle(track) {
+        return track.title || track.name || track.path.split('/').pop();
+    }
+
+    function getMetaText(track) {
+        const meta = [];
+        if (track.date) meta.push(track.date);
+        if (track.region) meta.push(track.region);
+        return meta.join(' · ');
     }
 
     function getTooltipText(track) {
-        const name = getDisplayName(track);
-        return track.description ? `${name} - ${track.description}` : name;
+        const title = getDisplayTitle(track);
+        return track.description ? `${title} - ${track.description}` : title;
+    }
+
+    function getTrackYear(track) {
+        if (track.date && /^\d{4}/.test(track.date)) {
+            return track.date.slice(0, 4);
+        }
+        const match = track.path.match(/^tracks\/(\d{4})\//);
+        return match ? match[1] : '기타';
+    }
+
+    function matchesSearch(track, keyword) {
+        if (!keyword) return true;
+        const haystack = [
+            track.path,
+            track.name,
+            track.title,
+            track.description,
+            track.date,
+            track.region
+        ].join(' ').toLowerCase();
+        return haystack.includes(keyword.toLowerCase());
+    }
+
+    function setActiveTrack(path) {
+        activeTrackPath = path;
+        allTracks.forEach(track => {
+            if (!track.layer) return;
+            const isActive = track.path === activeTrackPath;
+            const item = track.listItem;
+            if (item) {
+                item.classList.toggle('active', isActive);
+            }
+            track.layer.setStyle({
+                color: isActive ? '#ff5a36' : '#3388ff',
+                weight: isActive ? 7 : 4,
+                opacity: isActive ? 1 : 0.65
+            });
+        });
     }
 
     async function fetchTrackManifest() {
@@ -107,92 +274,182 @@
                 name: item.name || '',
                 title: item.title || '',
                 description: item.description || '',
-                url: buildRawFileUrl(item.path)
-            }));
+                date: item.date || '',
+                region: item.region || '',
+                url: buildRawFileUrl(item.path),
+                layer: null,
+                listItem: null
+            }))
+            .sort((a, b) => {
+                const dateA = a.date || '';
+                const dateB = b.date || '';
+                if (dateA !== dateB) return dateB.localeCompare(dateA);
+                return b.path.localeCompare(a.path);
+            });
+    }
+
+    function createTrackListItem(track) {
+        const item = document.createElement('div');
+        item.className = 'track-item';
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'track-title';
+        titleEl.innerText = getDisplayTitle(track);
+
+        const metaEl = document.createElement('div');
+        metaEl.className = 'track-meta';
+        metaEl.innerText = getMetaText(track) || track.path.replace('tracks/', '');
+
+        const descEl = document.createElement('div');
+        descEl.className = 'track-description';
+        descEl.innerText = track.description || '설명이 없습니다.';
+
+        item.appendChild(titleEl);
+        item.appendChild(metaEl);
+        item.appendChild(descEl);
+
+        item.onclick = () => {
+            if (track.layer) {
+                const bounds = track.layer.getBounds && track.layer.getBounds();
+                if (bounds && bounds.isValid && bounds.isValid()) {
+                    map.fitBounds(bounds);
+                }
+                setActiveTrack(track.path);
+            }
+        };
+
+        track.listItem = item;
+        return item;
+    }
+
+    function renderTrackList() {
+        const keyword = searchInput.value.trim().toLowerCase();
+        trackListEl.innerHTML = '';
+
+        const filteredTracks = allTracks.filter(track => matchesSearch(track, keyword));
+
+        if (filteredTracks.length === 0) {
+            const emptyEl = document.createElement('div');
+            emptyEl.className = 'empty-message';
+            emptyEl.innerText = '검색 결과가 없습니다.';
+            trackListEl.appendChild(emptyEl);
+            return;
+        }
+
+        const groups = new Map();
+        filteredTracks.forEach(track => {
+            const year = getTrackYear(track);
+            if (!groups.has(year)) groups.set(year, []);
+            groups.get(year).push(track);
+        });
+
+        Array.from(groups.keys())
+            .sort((a, b) => b.localeCompare(a))
+            .forEach(year => {
+                const groupEl = document.createElement('div');
+                groupEl.className = 'track-year-group';
+
+                const headingEl = document.createElement('div');
+                headingEl.className = 'track-year-heading';
+                headingEl.innerText = year;
+                groupEl.appendChild(headingEl);
+
+                groups.get(year).forEach(track => {
+                    groupEl.appendChild(createTrackListItem(track));
+                });
+
+                trackListEl.appendChild(groupEl);
+            });
+
+        if (activeTrackPath) {
+            setActiveTrack(activeTrackPath);
+        }
+    }
+
+    function initTrackLayer(track, index) {
+        const tooltipText = getTooltipText(track);
+
+        const gpxLayer = new L.GPX(track.url, {
+            async: true,
+            marker_options: {
+                startIconUrl: null,
+                endIconUrl: null,
+                shadowUrl: null
+            },
+            polyline_options: {
+                color: '#3388ff',
+                weight: 4,
+                opacity: 0.65
+            }
+        });
+
+        gpxLayer.on('loaded', function(e) {
+            const layer = e.target;
+            track.layer = layer;
+
+            layer.on('mouseover', function() {
+                const isActive = activeTrackPath === track.path;
+                this.setStyle({
+                    color: '#ff5a36',
+                    weight: isActive ? 7 : 6,
+                    opacity: 1
+                });
+                this.bindTooltip(tooltipText, {
+                    sticky: true,
+                    direction: 'top',
+                    className: 'custom-tooltip'
+                }).openTooltip();
+            });
+
+            layer.on('mouseout', function() {
+                const isActive = activeTrackPath === track.path;
+                this.setStyle({
+                    color: isActive ? '#ff5a36' : '#3388ff',
+                    weight: isActive ? 7 : 4,
+                    opacity: isActive ? 1 : 0.65
+                });
+                this.closeTooltip();
+            });
+
+            layer.on('click', function() {
+                setActiveTrack(track.path);
+            });
+
+            if (index === 0) {
+                const bounds = layer.getBounds();
+                if (bounds && bounds.isValid && bounds.isValid()) {
+                    map.fitBounds(bounds);
+                }
+                setActiveTrack(track.path);
+            }
+        });
+
+        gpxLayer.on('error', function(err) {
+            console.error('GPX load error:', track.path, err);
+        });
+
+        gpxLayer.addTo(map);
     }
 
     async function init() {
-        const statusEl = document.getElementById('status');
-        const listEl = document.getElementById('track-list');
-
         try {
-            const tracks = await fetchTrackManifest();
+            allTracks = await fetchTrackManifest();
 
-            if (tracks.length === 0) {
+            if (allTracks.length === 0) {
                 statusEl.innerText = 'tracks.json에 GPX 항목이 없습니다.';
                 return;
             }
 
-            tracks.sort((a, b) => b.path.localeCompare(a.path));
-
-            tracks.forEach((track, index) => {
-                const tooltipText = getTooltipText(track);
-                const displayName = getDisplayName(track);
-
-                const gpxLayer = new L.GPX(track.url, {
-                    async: true,
-                    marker_options: { startIconUrl: null, endIconUrl: null, shadowUrl: null },
-                    polyline_options: { color: '#3388ff', weight: 4, opacity: 0.6 }
-                });
-
-                gpxLayer.on('loaded', function(e) {
-                    const layer = e.target;
-
-                    layer.on('mouseover', function() {
-                        this.setStyle({ color: '#ff4400', weight: 7, opacity: 1 });
-                        this.bindTooltip(tooltipText, {
-                            sticky: true,
-                            direction: 'top',
-                            className: 'custom-tooltip'
-                        }).openTooltip();
-                    });
-
-                    layer.on('mouseout', function() {
-                        this.setStyle({ color: '#3388ff', weight: 4, opacity: 0.6 });
-                        this.closeTooltip();
-                    });
-
-                    if (index === 0) {
-                        map.fitBounds(layer.getBounds());
-                    }
-                });
-
-                gpxLayer.on('error', function(err) {
-                    console.error('GPX load error:', track.path, err);
-                });
-
-                gpxLayer.addTo(map);
-
-                const item = document.createElement('div');
-                item.className = 'track-item';
-
-                const nameEl = document.createElement('div');
-                nameEl.className = 'track-name';
-                nameEl.innerText = displayName;
-
-                const descEl = document.createElement('div');
-                descEl.className = 'track-description';
-                descEl.innerText = track.description || track.path.replace('tracks/', '');
-
-                item.appendChild(nameEl);
-                item.appendChild(descEl);
-
-                item.onclick = () => {
-                    const bounds = gpxLayer.getBounds && gpxLayer.getBounds();
-                    if (bounds && bounds.isValid && bounds.isValid()) {
-                        map.fitBounds(bounds);
-                    }
-                };
-
-                listEl.appendChild(item);
-            });
-
-            statusEl.innerText = `총 ${tracks.length}개의 투어 로드 완료`;
+            renderTrackList();
+            allTracks.forEach((track, index) => initTrackLayer(track, index));
+            statusEl.innerText = `총 ${allTracks.length}개의 투어 로드 완료`;
         } catch (e) {
             console.error(e);
             statusEl.innerText = 'tracks.json 또는 GPX 파일을 불러오지 못했습니다.';
         }
     }
+
+    searchInput.addEventListener('input', renderTrackList);
 
     init();
 </script>
