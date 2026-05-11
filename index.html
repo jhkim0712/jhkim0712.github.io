@@ -8,7 +8,7 @@
     <style>
         body, html { margin: 0; padding: 0; height: 100%; font-family: 'Pretendard', sans-serif; }
         #map { height: 100vh; width: 100%; z-index: 1; }
-        
+
         .ui-panel {
             position: absolute; top: 20px; left: 20px; z-index: 1000;
             background: rgba(255, 255, 255, 0.9); padding: 20px;
@@ -18,13 +18,26 @@
         h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #333; }
         #status { font-size: 0.85rem; color: #666; margin-bottom: 10px; }
         .track-list {
-            max-height: 200px; overflow-y: auto; font-size: 0.8rem;
+            max-height: 240px; overflow-y: auto; font-size: 0.8rem;
             border-top: 1px solid #ddd; padding-top: 10px;
         }
-        .track-item { padding: 4px 0; border-bottom: 1px solid #eee; color: #444; cursor: pointer; }
-        .track-item:hover { color: #007bff; font-weight: bold; }
+        .track-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            color: #444;
+            cursor: pointer;
+        }
+        .track-item:hover { color: #007bff; }
+        .track-name {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        .track-description {
+            font-size: 0.75rem;
+            color: #666;
+            line-height: 1.4;
+        }
 
-        /* 툴팁 스타일 커스텀 */
         .custom-tooltip {
             background-color: rgba(0, 0, 0, 0.8);
             color: white;
@@ -39,7 +52,7 @@
 
 <div class="ui-panel">
     <h2>🏍️ 투어 로그 아카이브</h2>
-    <div id="status">경로를 찾는 중...</div>
+    <div id="status">경로를 불러오는 중...</div>
     <div class="track-list" id="track-list"></div>
 </div>
 
@@ -53,51 +66,49 @@
         owner: 'jhkim0712',
         repo: 'jhkim0712.github.io',
         branch: 'main',
-        basePath: 'tracks'
+        manifestPath: 'tracks.json'
     };
 
-    var map = L.map('map').setView([36.5, 127.5], 7);
+    const map = L.map('map').setView([36.5, 127.5], 7);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    async function fetchAllGpxFiles(path) {
-        const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${path}?ref=${CONFIG.branch}`;
+    function buildRawFileUrl(path) {
+        return `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${path}`;
+    }
 
-        try {
-            const response = await fetch(url);
+    function getDisplayName(track) {
+        return track.name || track.title || track.path.split('/').pop();
+    }
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`GitHub API error ${response.status}: ${errorText}`);
-            }
+    function getTooltipText(track) {
+        const name = getDisplayName(track);
+        return track.description ? `${name} - ${track.description}` : name;
+    }
 
-            const items = await response.json();
+    async function fetchTrackManifest() {
+        const response = await fetch(`./${CONFIG.manifestPath}?t=${Date.now()}`);
 
-            if (!Array.isArray(items)) {
-                throw new Error(`Unexpected API response for ${path}`);
-            }
-
-            let files = [];
-
-            for (const item of items) {
-                if (item.type === 'dir') {
-                    const subFiles = await fetchAllGpxFiles(item.path);
-                    files = files.concat(subFiles);
-                } else if (item.type === 'file' && item.name.toLowerCase().endsWith('.gpx')) {
-                    files.push({
-                        name: item.name,
-                        path: item.path,
-                        url: `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${item.path}`
-                    });
-                }
-            }
-
-            return files;
-        } catch (e) {
-            console.error('Failed to fetch GPX files:', e);
-            throw e;
+        if (!response.ok) {
+            throw new Error(`tracks.json 로드 실패: ${response.status}`);
         }
+
+        const items = await response.json();
+
+        if (!Array.isArray(items)) {
+            throw new Error('tracks.json 형식이 올바르지 않습니다.');
+        }
+
+        return items
+            .filter(item => item.path && item.path.toLowerCase().endsWith('.gpx'))
+            .map(item => ({
+                path: item.path,
+                name: item.name || '',
+                title: item.title || '',
+                description: item.description || '',
+                url: buildRawFileUrl(item.path)
+            }));
     }
 
     async function init() {
@@ -105,17 +116,20 @@
         const listEl = document.getElementById('track-list');
 
         try {
-            const gpxFiles = await fetchAllGpxFiles(CONFIG.basePath);
+            const tracks = await fetchTrackManifest();
 
-            if (gpxFiles.length === 0) {
-                statusEl.innerText = 'GPX 파일은 있지만 API 응답 문제일 수 있습니다. 콘솔을 확인해 주세요.';
+            if (tracks.length === 0) {
+                statusEl.innerText = 'tracks.json에 GPX 항목이 없습니다.';
                 return;
             }
 
-            gpxFiles.sort((a, b) => b.path.localeCompare(a.path));
+            tracks.sort((a, b) => b.path.localeCompare(a.path));
 
-            gpxFiles.forEach((file, index) => {
-                const gpxLayer = new L.GPX(file.url, {
+            tracks.forEach((track, index) => {
+                const tooltipText = getTooltipText(track);
+                const displayName = getDisplayName(track);
+
+                const gpxLayer = new L.GPX(track.url, {
                     async: true,
                     marker_options: { startIconUrl: null, endIconUrl: null, shadowUrl: null },
                     polyline_options: { color: '#3388ff', weight: 4, opacity: 0.6 }
@@ -123,11 +137,10 @@
 
                 gpxLayer.on('loaded', function(e) {
                     const layer = e.target;
-                    const fileName = file.path.split('/').pop();
 
                     layer.on('mouseover', function() {
                         this.setStyle({ color: '#ff4400', weight: 7, opacity: 1 });
-                        this.bindTooltip(fileName, {
+                        this.bindTooltip(tooltipText, {
                             sticky: true,
                             direction: 'top',
                             className: 'custom-tooltip'
@@ -139,31 +152,45 @@
                         this.closeTooltip();
                     });
 
-                    if (index === 0) map.fitBounds(layer.getBounds());
+                    if (index === 0) {
+                        map.fitBounds(layer.getBounds());
+                    }
                 });
 
                 gpxLayer.on('error', function(err) {
-                    console.error('GPX load error:', file.path, err);
+                    console.error('GPX load error:', track.path, err);
                 });
 
                 gpxLayer.addTo(map);
 
                 const item = document.createElement('div');
                 item.className = 'track-item';
-                item.innerText = file.path.replace(CONFIG.basePath + '/', '');
+
+                const nameEl = document.createElement('div');
+                nameEl.className = 'track-name';
+                nameEl.innerText = displayName;
+
+                const descEl = document.createElement('div');
+                descEl.className = 'track-description';
+                descEl.innerText = track.description || track.path.replace('tracks/', '');
+
+                item.appendChild(nameEl);
+                item.appendChild(descEl);
+
                 item.onclick = () => {
                     const bounds = gpxLayer.getBounds && gpxLayer.getBounds();
                     if (bounds && bounds.isValid && bounds.isValid()) {
                         map.fitBounds(bounds);
                     }
                 };
+
                 listEl.appendChild(item);
             });
 
-            statusEl.innerText = `총 ${gpxFiles.length}개의 투어 로드 완료`;
+            statusEl.innerText = `총 ${tracks.length}개의 투어 로드 완료`;
         } catch (e) {
             console.error(e);
-            statusEl.innerText = 'GPX 목록을 불러오지 못했습니다. 잠시 후 다시 시도하거나 콘솔을 확인해 주세요.';
+            statusEl.innerText = 'tracks.json 또는 GPX 파일을 불러오지 못했습니다.';
         }
     }
 
