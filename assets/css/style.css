@@ -1,0 +1,152 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'Pretendard', sans-serif;
+    background: #f6f7fb;
+}
+
+#map {
+    height: 100vh;
+    width: 100%;
+    z-index: 1;
+}
+
+.ui-panel {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+    width: 340px;
+    max-width: calc(100vw - 40px);
+    background: rgba(255, 255, 255, 0.92);
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    backdrop-filter: blur(10px);
+}
+
+h2 {
+    margin: 0 0 8px 0;
+    font-size: 1.25rem;
+    color: #222;
+}
+
+#status {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 12px;
+}
+
+.toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.search-input {
+    flex: 1;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.85rem;
+    outline: none;
+    background: #fff;
+}
+
+.search-input:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 3px rgba(96,165,250,0.15);
+}
+
+.track-list {
+    max-height: 60vh;
+    overflow-y: auto;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 10px;
+}
+
+.track-year-group {
+    margin-bottom: 14px;
+}
+
+.track-year-heading {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #4b5563;
+    margin: 10px 0 8px;
+    padding-left: 2px;
+}
+
+.track-item {
+    padding: 12px;
+    margin-bottom: 10px;
+    border: 1px solid #ececec;
+    border-radius: 12px;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.track-item:hover {
+    transform: translateY(-1px);
+    border-color: #b8d4ff;
+    box-shadow: 0 6px 18px rgba(0,123,255,0.08);
+}
+
+.track-item.active {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.14);
+    background: #f8fbff;
+}
+
+.track-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 6px;
+}
+
+.track-meta {
+    font-size: 0.72rem;
+    color: #4b5563;
+    margin-bottom: 6px;
+}
+
+.track-description {
+    font-size: 0.78rem;
+    color: #666;
+    line-height: 1.5;
+}
+
+.empty-message {
+    font-size: 0.82rem;
+    color: #6b7280;
+    padding: 12px 4px;
+}
+
+.custom-tooltip {
+    background-color: rgba(0, 0, 0, 0.82);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-weight: 600;
+    font-size: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+@media (max-width: 768px) {
+    .ui-panel {
+        left: 12px;
+        right: 12px;
+        top: 12px;
+        width: auto;
+        max-width: none;
+        padding: 16px;
+    }
+
+    .track-list {
+        max-height: 40vh;
+    }
+}
