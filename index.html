@@ -17,8 +17,8 @@
         }
         h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #333; }
         #status { font-size: 0.85rem; color: #666; margin-bottom: 10px; }
-        .track-list { 
-            max-height: 200px; overflow-y: auto; font-size: 0.8rem; 
+        .track-list {
+            max-height: 200px; overflow-y: auto; font-size: 0.8rem;
             border-top: 1px solid #ddd; padding-top: 10px;
         }
         .track-item { padding: 4px 0; border-bottom: 1px solid #eee; color: #444; cursor: pointer; }
@@ -50,28 +50,41 @@
 
 <script>
     const CONFIG = {
-        owner: 'jhkim0712', 
-        repo: 'jhkim0712.github.io', 
-        branch: 'main',          
-        basePath: 'tracks'       
+        owner: 'jhkim0712',
+        repo: 'jhkim0712.github.io',
+        branch: 'main',
+        basePath: 'tracks'
     };
 
-    var map = L.map('map').setView([36.5, 127.5], 7); 
+    var map = L.map('map').setView([36.5, 127.5], 7);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
     async function fetchAllGpxFiles(path) {
         const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${path}?ref=${CONFIG.branch}`;
+
         try {
             const response = await fetch(url);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`GitHub API error ${response.status}: ${errorText}`);
+            }
+
             const items = await response.json();
+
+            if (!Array.isArray(items)) {
+                throw new Error(`Unexpected API response for ${path}`);
+            }
+
             let files = [];
-            for (let item of items) {
+
+            for (const item of items) {
                 if (item.type === 'dir') {
                     const subFiles = await fetchAllGpxFiles(item.path);
                     files = files.concat(subFiles);
-                } else if (item.name.toLowerCase().endsWith('.gpx')) {
+                } else if (item.type === 'file' && item.name.toLowerCase().endsWith('.gpx')) {
                     files.push({
                         name: item.name,
                         path: item.path,
@@ -79,67 +92,79 @@
                     });
                 }
             }
+
             return files;
         } catch (e) {
-            console.error(e);
-            return [];
+            console.error('Failed to fetch GPX files:', e);
+            throw e;
         }
     }
 
     async function init() {
         const statusEl = document.getElementById('status');
         const listEl = document.getElementById('track-list');
-        const gpxFiles = await fetchAllGpxFiles(CONFIG.basePath);
-        
-        if (gpxFiles.length === 0) {
-            statusEl.innerText = "GPX 파일을 찾을 수 없습니다.";
-            return;
-        }
 
-        gpxFiles.sort((a, b) => b.path.localeCompare(a.path));
+        try {
+            const gpxFiles = await fetchAllGpxFiles(CONFIG.basePath);
 
-        gpxFiles.forEach((file, index) => {
-            const gpxLayer = new L.GPX(file.url, {
-                async: true,
-                marker_options: { startIconUrl: null, endIconUrl: null, shadowUrl: null },
-                polyline_options: { color: '#3388ff', weight: 4, opacity: 0.6 }
+            if (gpxFiles.length === 0) {
+                statusEl.innerText = 'GPX 파일은 있지만 API 응답 문제일 수 있습니다. 콘솔을 확인해 주세요.';
+                return;
+            }
+
+            gpxFiles.sort((a, b) => b.path.localeCompare(a.path));
+
+            gpxFiles.forEach((file, index) => {
+                const gpxLayer = new L.GPX(file.url, {
+                    async: true,
+                    marker_options: { startIconUrl: null, endIconUrl: null, shadowUrl: null },
+                    polyline_options: { color: '#3388ff', weight: 4, opacity: 0.6 }
+                });
+
+                gpxLayer.on('loaded', function(e) {
+                    const layer = e.target;
+                    const fileName = file.path.split('/').pop();
+
+                    layer.on('mouseover', function() {
+                        this.setStyle({ color: '#ff4400', weight: 7, opacity: 1 });
+                        this.bindTooltip(fileName, {
+                            sticky: true,
+                            direction: 'top',
+                            className: 'custom-tooltip'
+                        }).openTooltip();
+                    });
+
+                    layer.on('mouseout', function() {
+                        this.setStyle({ color: '#3388ff', weight: 4, opacity: 0.6 });
+                        this.closeTooltip();
+                    });
+
+                    if (index === 0) map.fitBounds(layer.getBounds());
+                });
+
+                gpxLayer.on('error', function(err) {
+                    console.error('GPX load error:', file.path, err);
+                });
+
+                gpxLayer.addTo(map);
+
+                const item = document.createElement('div');
+                item.className = 'track-item';
+                item.innerText = file.path.replace(CONFIG.basePath + '/', '');
+                item.onclick = () => {
+                    const bounds = gpxLayer.getBounds && gpxLayer.getBounds();
+                    if (bounds && bounds.isValid && bounds.isValid()) {
+                        map.fitBounds(bounds);
+                    }
+                };
+                listEl.appendChild(item);
             });
 
-            gpxLayer.on('loaded', function(e) {
-                const layer = e.target;
-                const fileName = file.path.split('/').pop(); // 경로에서 파일명만 추출
-
-                // 1. 마우스 올렸을 때 이벤트
-                layer.on('mouseover', function() {
-                    this.setStyle({ color: '#ff4400', weight: 7, opacity: 1 }); // 강조 색상
-                    this.bindTooltip(fileName, { 
-                        sticky: true, 
-                        direction: 'top', 
-                        className: 'custom-tooltip' 
-                    }).openTooltip();
-                });
-
-                // 2. 마우스 뗐을 때 이벤트
-                layer.on('mouseout', function() {
-                    this.setStyle({ color: '#3388ff', weight: 4, opacity: 0.6 }); // 원래 색상
-                    this.closeTooltip();
-                });
-
-                if(index === 0) map.fitBounds(layer.getBounds());
-            }).addTo(map);
-
-            // 목록 생성
-            const item = document.createElement('div');
-            item.className = 'track-item';
-            item.innerText = file.path.replace(CONFIG.basePath + '/', '');
-            item.onclick = () => {
-                // 리스트 클릭 시 해당 경로로 이동하는 기능 추가
-                map.fitBounds(gpxLayer.getBounds());
-            };
-            listEl.appendChild(item);
-        });
-
-        statusEl.innerText = `총 ${gpxFiles.length}개의 투어 로드 완료`;
+            statusEl.innerText = `총 ${gpxFiles.length}개의 투어 로드 완료`;
+        } catch (e) {
+            console.error(e);
+            statusEl.innerText = 'GPX 목록을 불러오지 못했습니다. 잠시 후 다시 시도하거나 콘솔을 확인해 주세요.';
+        }
     }
 
     init();
