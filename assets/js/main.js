@@ -11,7 +11,7 @@ const CONFIG = {
 // - count: 그릴 디코이 경로 개수
 const HOME_OBFUSCATION = {
     center: [37.162315, 127.071564],
-    radiusKm: 2.5,
+    radiusKm: 0.5,
     count: 6,
     seed: 20260512
 };
