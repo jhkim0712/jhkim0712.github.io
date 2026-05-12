@@ -10,8 +10,8 @@ const CONFIG = {
 // - radiusKm: 디코이가 흩어지는 대략적 반경(km)
 // - count: 그릴 디코이 경로 개수
 const HOME_OBFUSCATION = {
-    center: [37.162315, 127.071564],
-    radiusKm: 0.5,
+    center: [37.162321, 127.071597],
+    radiusKm: 0.2,
     count: 6,
     seed: 20260512
 };
@@ -83,7 +83,6 @@ function addDecoyRoutes(config) {
         }).addTo(layerGroup);
     }
     layerGroup.addTo(map);
-    return layerGroup;
 }
 
 addDecoyRoutes(HOME_OBFUSCATION);
@@ -94,7 +93,7 @@ function buildRawFileUrl(path) {
 }
 
 function getDisplayTitle(track) {
-    return track.title || track.name || track.path.split('/').pop();
+    return track.title || track.path.split('/').pop();
 }
 
 function getMetaText(track) {
@@ -124,7 +123,6 @@ function matchesSearch(track, keyword) {
     if (!keyword) return true;
     const haystack = [
         track.path,
-        track.name,
         track.title,
         track.description,
         track.date,
@@ -168,7 +166,6 @@ async function fetchTrackManifest() {
         .filter(item => item.path && item.path.toLowerCase().endsWith('.gpx'))
         .map(item => ({
             path: item.path,
-            name: item.name || '',
             title: item.title || '',
             description: item.description || '',
             date: item.date || '',
@@ -215,7 +212,7 @@ function createTrackListItem(track) {
     item.onclick = () => {
         if (track.layer) {
             const bounds = track.layer.getBounds && track.layer.getBounds();
-            if (bounds && bounds.isValid && bounds.isValid()) {
+            if (bounds && bounds.isValid()) {
                 map.fitBounds(bounds);
             }
             setActiveTrack(track.path);
@@ -321,7 +318,7 @@ function initTrackLayer(track, index) {
 
         if (index === 0) {
             const bounds = layer.getBounds();
-            if (bounds && bounds.isValid && bounds.isValid()) {
+            if (bounds && bounds.isValid()) {
                 map.fitBounds(bounds);
             }
             setActiveTrack(track.path);
