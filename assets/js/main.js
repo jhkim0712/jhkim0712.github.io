@@ -1,16 +1,39 @@
-const CONFIG = {
-    owner: 'jhkim0712',
-    repo: 'jhkim0712.github.io',
-    branch: 'main',
-    manifestPath: 'tracks.json'
-};
+// XOR + Base64 로 인코딩된 문자열을 복원
+function _ds(s, k) {
+    const raw = atob(s);
+    let out = '';
+    for (let i = 0; i < raw.length; i++) {
+        out += String.fromCharCode(raw.charCodeAt(i) ^ k);
+    }
+    return out;
+}
+
+const CONFIG = (function() {
+    const K = 0x5C;
+    return {
+        owner: _ds('NjQ3NTFsa21u', K),
+        repo: _ds('NjQ3NTFsa21ucjs1KDQpPnI1Mw==', K),
+        branch: _ds('MT01Mg==', K),
+        manifestPath: _ds('KC49PzcvcjYvMzI=', K)
+    };
+})();
 
 // 홈 위치 보호용 디코이(가짜) 경로 설정
 // - center: 가리고 싶은 실제 좌표 부근(약간 어긋난 중심점을 사용)
+//   * 평문 좌표 노출 방지를 위해 XOR + Base64 로 인코딩되어 보관됨
 // - radiusKm: 디코이가 흩어지는 대략적 반경(km)
-// - count: 그릴 디코이 경로 개수
+function _d(s, k) {
+    const raw = atob(s);
+    const buf = new ArrayBuffer(raw.length);
+    const view = new DataView(buf);
+    for (let i = 0; i < raw.length; i++) {
+        view.setUint8(i, raw.charCodeAt(i) ^ k);
+    }
+    return [view.getFloat64(0, false), view.getFloat64(8, false)];
+}
+
 const HOME_OBFUSCATION = {
-    center: [37.162321, 127.071597],
+    center: _d('5ecxY0qYn7jl+mEwrjD63Q==', 0xA5),
     radiusKm: 0.2,
     count: 6,
     seed: 20260512
