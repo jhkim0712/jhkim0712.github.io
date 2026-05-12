@@ -5,6 +5,17 @@ const CONFIG = {
     manifestPath: 'tracks.json'
 };
 
+// 홈 위치 보호용 디코이(가짜) 경로 설정
+// - center: 가리고 싶은 실제 좌표 부근(약간 어긋난 중심점을 사용)
+// - radiusKm: 디코이가 흩어지는 대략적 반경(km)
+// - count: 그릴 디코이 경로 개수
+const HOME_OBFUSCATION = {
+    center: [37.162315, 127.071564],
+    radiusKm: 2.5,
+    count: 6,
+    seed: 20260512
+};
+
 const map = L.map('map').setView([36.5, 127.5], 7);
 const searchInput = document.getElementById('search-input');
 const trackListEl = document.getElementById('track-list');
@@ -16,6 +27,67 @@ let activeTrackPath = null;
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
 }).addTo(map);
+
+// --- 홈 위치 난독화 디코이 경로 ----------------------------------------------
+function makeSeededRandom(seed) {
+    let s = seed >>> 0;
+    return function() {
+        s = (s * 1664525 + 1013904223) >>> 0;
+        return s / 0xffffffff;
+    };
+}
+
+function offsetLatLng(centerLat, centerLng, dxKm, dyKm) {
+    const dLat = dyKm / 111.32;
+    const dLng = dxKm / (111.32 * Math.cos(centerLat * Math.PI / 180));
+    return [centerLat + dLat, centerLng + dLng];
+}
+
+function buildDecoyPath(rand, center, radiusKm) {
+    const startAngle = rand() * Math.PI * 2;
+    const startR = (0.3 + rand() * 0.7) * radiusKm;
+    let x = Math.cos(startAngle) * startR;
+    let y = Math.sin(startAngle) * startR;
+
+    const points = [offsetLatLng(center[0], center[1], x, y)];
+    const steps = 25 + Math.floor(rand() * 25);
+    let heading = rand() * Math.PI * 2;
+    const stepKm = (0.15 + rand() * 0.25);
+
+    for (let i = 0; i < steps; i++) {
+        heading += (rand() - 0.5) * 0.9;
+        x += Math.cos(heading) * stepKm;
+        y += Math.sin(heading) * stepKm;
+        // 반경을 너무 벗어나면 중심 쪽으로 살짝 끌어당김
+        const dist = Math.sqrt(x * x + y * y);
+        if (dist > radiusKm) {
+            x *= radiusKm / dist * 0.95;
+            y *= radiusKm / dist * 0.95;
+            heading += Math.PI;
+        }
+        points.push(offsetLatLng(center[0], center[1], x, y));
+    }
+    return points;
+}
+
+function addDecoyRoutes(config) {
+    const rand = makeSeededRandom(config.seed);
+    const layerGroup = L.layerGroup();
+    for (let i = 0; i < config.count; i++) {
+        const latlngs = buildDecoyPath(rand, config.center, config.radiusKm);
+        L.polyline(latlngs, {
+            color: '#3388ff',
+            weight: 4,
+            opacity: 0.55,
+            interactive: false
+        }).addTo(layerGroup);
+    }
+    layerGroup.addTo(map);
+    return layerGroup;
+}
+
+addDecoyRoutes(HOME_OBFUSCATION);
+// ---------------------------------------------------------------------------
 
 function buildRawFileUrl(path) {
     return `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${path}`;
