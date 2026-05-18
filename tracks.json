@@ -48,7 +48,7 @@
     "bike": "Yamaha MT-03"
   },
   {
-    "path": "tracks/2026/05/09/260509_chuncheon.gpx",
+    "path": "tracks/2026/05/260509_chuncheon.gpx",
     "title": "춘천",
     "description": "북한강과 의암호를 끼고 달린 춘천 라이딩",
     "date": "2026-05-09",
@@ -56,11 +56,19 @@
     "bike": "Yamaha MT-03"
   },
   {
-    "path": "tracks/2026/05/16/260516_yesam.gpx",
+    "path": "tracks/2026/05/260516_yesan.gpx",
     "title": "예산",
     "description": "원효봉중계소 등반",
     "date": "2026-05-16",
     "region": "충남 예산",
+    "bike": "Yamaha MT-03"
+  },
+  {
+    "path": "tracks/2026/05/260517_songsan.gpx",
+    "title": "송산",
+    "description": "K-모토페스타 (TS자동차안전연구원)에서 열린 송산 라이딩",
+    "date": "2026-05-17",
+    "region": "경기 화성",
     "bike": "Yamaha MT-03"
   }
 ]
