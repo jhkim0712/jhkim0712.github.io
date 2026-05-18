@@ -18,6 +18,19 @@ const CONFIG = (function() {
     };
 })();
 
+//* plain:
+/*
+
+ const CONFIG = {
+     owner: 'github-username',
+     repo: 'github-username.github.io',
+     branch: 'main',
+     manifestPath: 'tracks.json'
+ };
+
+*/
+
+
 // 홈 위치 보호용 디코이(가짜) 경로 설정
 // - center: 가리고 싶은 실제 좌표 부근(약간 어긋난 중심점을 사용)
 //   * 평문 좌표 노출 방지를 위해 XOR + Base64 로 인코딩되어 보관됨
