@@ -54,5 +54,13 @@
     "date": "2026-05-09",
     "region": "강원 춘천",
     "bike": "Yamaha MT-03"
+  },
+  {
+    "path": "tracks/2026/05/16/260516_yesam.gpx",
+    "title": "예산",
+    "description": "원효봉중계소 등반",
+    "date": "2026-05-16",
+    "region": "충남 예산",
+    "bike": "Yamaha MT-03"
   }
 ]
