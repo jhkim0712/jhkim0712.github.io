@@ -1,5 +1,45 @@
 [
   {
+    "path": "tracks/2025/12/Morning_Dec_12th_taiwan_arimountain.gpx",
+    "title": "Taiwan - Arimountain",
+    "description": "대만 스쿠터 투어 첫날, 옥산에서 아리산까지 달린 라이딩",
+    "date": "2025-12-12",
+    "region": "대만",
+    "bike": "Kymco Racing S 150"
+  },
+  {
+    "path": "tracks/2025/12/Morning_Dec_13th_taiwan_Westernmost_Point.gpx",
+    "title": "Taiwan - Westernmost Point",
+    "description": "대만 스쿠터 투어 둘째 날, 대만 최서단을 달린 라이딩",
+    "date": "2025-12-13",
+    "region": "대만",
+    "bike": "Kymco Racing S 150"
+  },  
+  {
+    "path": "tracks/2025/12/Morning_Dec_14th_taiwan_Southernmost_Point.gpx",
+    "title": "Taiwan - Southernmost Point",
+    "description": "대만 스쿠터 투어 셋째 날, 대만 최남단 - 화롄",
+    "date": "2025-12-14",
+    "region": "대만",
+    "bike": "Kymco Racing S 150"
+  },
+  {
+    "path": "tracks/2025/12/Morning_Dec_15th_taiwan_TarokoNationalPark.gpx",
+    "title": "Taiwan - Taroko National Park",
+    "description": "대만 스쿠터 투어 넷째 날, 타이루거 국립공원 라이딩",
+    "date": "2025-12-15",
+    "region": "대만",
+    "bike": "Kymco Racing S 150"
+  },
+  {
+    "path": "tracks/2025/12/Morning_Dec_16th_taiwan_Puli_taichung.gpx",
+    "title": "Taiwan - Puli to Taichung",
+    "description": "대만 스쿠터 투어 다섯째(마지막) 날, 푸리에서 타이중까지 달린 라이딩",
+    "date": "2025-12-16",
+    "region": "대만",
+    "bike": "Kymco Racing S 150"
+  },
+  {
     "path": "tracks/2026/03/260315_Yeongjongdo.gpx",
     "title": "영종도",
     "description": "해안 도로를 따라 달린 영종도 라이딩",
