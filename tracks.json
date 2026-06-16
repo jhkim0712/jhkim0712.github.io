@@ -110,5 +110,21 @@
     "date": "2026-05-17",
     "region": "경기 화성",
     "bike": "Yamaha MT-03"
+  },
+    {
+    "path": "tracks/2026/06/260613_sapgyo_home.gpx",
+    "title": "삽교",
+    "description": "삽교 라이딩",
+    "date": "2026-06-13",
+    "region": "충남 삽교",
+    "bike": "Yamaha MT-03"
+  },
+  {
+    "path": "tracks/2026/06/260614_jeongok_gungpyeong_port.gpx",
+    "title": "전곡항 궁평항",
+    "description": "전곡항 궁평항 라이딩",
+    "date": "2026-06-14",
+    "region": "경기 화성",
+    "bike": "Yamaha MT-03"
   }
 ]
