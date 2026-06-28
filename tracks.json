@@ -126,5 +126,21 @@
     "date": "2026-06-14",
     "region": "경기 화성",
     "bike": "Yamaha MT-03"
+  },
+  {
+    "path": "tracks/2026/06/260619_yangpyeong.gpx",
+    "title": "양평",
+    "description": "양평 라이딩가다가 비가와서 중간에 포기하고 돌아옴",
+    "date": "2026-06-19",
+    "region": "경기 양평",
+    "bike": "Yamaha MT-03"
+  },
+  {
+    "path": "tracks/2026/06/260827_Wonsan-do_bari.gpx",
+    "title": "원산도",
+    "description": "원산도, 꽃지해수욕장, 카페니드",
+    "date": "2026-06-27",
+    "region": "충남 보령",
+    "bike": "Yamaha MT-03"
   }
 ]
