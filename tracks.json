@@ -142,5 +142,13 @@
     "date": "2026-06-27",
     "region": "충남 보령",
     "bike": "Yamaha MT-03"
+  },
+  {
+    "path": "tracks/2026/07/260711_samgilpo.gpx",
+    "title": "서산 삼길포",
+    "description": "삼길포 선상어시장에서 광어&우럭 회를 먹고 돌아오는 라이딩",
+    "date": "2026-07-11",
+    "region": "충남 서산",
+    "bike": "Yamaha MT-03"
   }
 ]
