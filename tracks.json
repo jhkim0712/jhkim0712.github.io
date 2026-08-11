@@ -150,5 +150,21 @@
     "date": "2026-07-11",
     "region": "충남 서산",
     "bike": "Honda NX500"
+  },
+  {
+    "path": "tracks/2026/07/260731_donghae.gpx",
+    "title": "동해",
+    "description": "강릉 - 동해(묵호항) - 정동진 라이딩",
+    "date": "2026-07-31",
+    "region": "강원 동해",
+    "bike": "Honda NX500"
+  },
+  {
+    "path": "tracks/2026/08/260801_donghae_return.gpx",
+    "title": "동해",
+    "description": "정동진 - 대관령 - 오산 복귀길",
+    "date": "2026-08-01",
+    "region": "강원 동해",
+    "bike": "Honda NX500"
   }
 ]
