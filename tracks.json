@@ -166,5 +166,13 @@
     "date": "2026-08-01",
     "region": "강원 동해",
     "bike": "Honda NX500"
+  },
+  {
+    "path": "tracks/2026/08/260808_nx500_Initial inspection.gpx",
+    "title": "용인",
+    "description": "혼다모터사이클 용인점 (NX500 초회점검)",
+    "date": "2026-08-08",
+    "region": "경기 용인",
+    "bike": "Honda NX500"
   }
 ]
