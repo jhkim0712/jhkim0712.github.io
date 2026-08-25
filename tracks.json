@@ -174,5 +174,21 @@
     "date": "2026-08-08",
     "region": "경기 용인",
     "bike": "Honda NX500"
+  },
+  {
+    "path": "tracks/2026/08/260815_jecheon_danyang.gpx",
+    "title": "충북 제천, 충북 단양",
+    "description": "단양 이끼터널, 고수재, 양방산 전망대",
+    "date": "2026-08-15",
+    "region": "충북 단양",
+    "bike": "Honda NX500"
+  },
+    {
+    "path": "tracks/2026/08/260823_sinjindo.gpx",
+    "title": "충남 태안",
+    "description": "삽교호 들렸다가 신진도 갔는데, 사람이 너무 많아서 그냥 복귀한 바리",
+    "date": "2026-08-23",
+    "region": "충남 태안",
+    "bike": "Honda NX500"
   }
 ]
