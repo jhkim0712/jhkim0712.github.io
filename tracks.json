@@ -189,6 +189,16 @@
     "description": "삽교호 들렸다가 신진도 갔는데, 사람이 너무 많아서 그냥 복귀한 바리",
     "date": "2026-08-23",
     "region": "충남 태안",
-    "bike": "Honda NX500"
+    "bike": "Honda NX500",
+    "relive": "https://www.relive.com/ko/view/vrqDe4XMjLv"
+  },
+  {
+    "path": "tracks/2026/08/260830_asan_seohaecoffe.gpx",
+    "title": "충남 아산 신정호 - 서해커피 복귀",
+    "description": "아산 신정호 갔다가 주말이라 사람 많아서 복귀하다가 서해커피 들림",
+    "date": "2026-08-30",
+    "region": "충남 아산",
+    "bike": "Honda NX500",
+    "relive": "https://www.relive.com/ko/view/vQvy51m8xKv"
   }
 ]
