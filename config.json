@@ -1,0 +1,21 @@
+{
+  "github": {
+    "owner": "NjQ3NTFsa21u",
+    "repo": "NjQ3NTFsa21ucjs1KDQpPnI1Mw==",
+    "branch": "MT01Mg==",
+    "manifestPath": "KC49PzcvcjYvMzI="
+  },
+  "homeObfuscation": {
+    "center": "5ecxY0qYn7jl+mEwrjD63Q==",
+    "radiusKm": 0.2,
+    "count": 6,
+    "seed": 20260512
+  },
+  "vworld": {
+    "apiKey": "47614F6A-9D59-4821-B74E-20FF664055A8",
+    "issuedAt": "2026-09-02",
+    "expiresAt": "2027-03-02"
+  },
+  "overviewPath": "assets/data/track-overview.json",
+  "defaultBasemap": "osm"
+}

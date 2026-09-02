@@ -8,33 +8,9 @@ function _ds(s, k) {
     return out;
 }
 
-const CONFIG = (function() {
-    const K = 0x5C;
-    return {
-        owner: _ds('NjQ3NTFsa21u', K),
-        repo: _ds('NjQ3NTFsa21ucjs1KDQpPnI1Mw==', K),
-        branch: _ds('MT01Mg==', K),
-        manifestPath: _ds('KC49PzcvcjYvMzI=', K)
-    };
-})();
-
-//* plain:
-/*
-
- const CONFIG = {
-     owner: 'github-username',
-     repo: 'github-username.github.io',
-     branch: 'main',
-     manifestPath: 'tracks.json'
- };
-
-*/
-
-
-// 홈 위치 보호용 디코이(가짜) 경로 설정
+// 홈 위치 보호용 디코이(가짜) 경로 좌표 복원
 // - center: 가리고 싶은 실제 좌표 부근(약간 어긋난 중심점을 사용)
-//   * 평문 좌표 노출 방지를 위해 XOR + Base64 로 인코딩되어 보관됨
-// - radiusKm: 디코이가 흩어지는 대략적 반경(km)
+//   * 평문 좌표 노출 방지를 위해 config.json에는 XOR + Base64로 인코딩되어 보관됨
 function _d(s, k) {
     const raw = atob(s);
     const buf = new ArrayBuffer(raw.length);
@@ -45,18 +21,27 @@ function _d(s, k) {
     return [view.getFloat64(0, false), view.getFloat64(8, false)];
 }
 
-const HOME_OBFUSCATION = {
-    center: _d('5ecxY0qYn7jl+mEwrjD63Q==', 0xA5),
-    radiusKm: 0.2,
-    count: 6,
-    seed: 20260512
-};
+// 퍼시스턴트 설정값(GitHub 정보, 홈 위치 디코이, API 키 등)은 전부 루트의
+// config.json 에서 읽어온다. 형식은 config.json 참고:
+//
+//   {
+//     "github": { "owner": "...", "repo": "...", "branch": "...", "manifestPath": "..." },
+//     "homeObfuscation": { "center": "...", "radiusKm": 0.2, "count": 6, "seed": 12345 },
+//     "vworld": { "apiKey": "...", "issuedAt": "...", "expiresAt": "..." },
+//     "overviewPath": "assets/data/track-overview.json",
+//     "defaultBasemap": "osm"
+//   }
+//
+// github.*, homeObfuscation.center 는 XOR + Base64로 인코딩된 값이며, 위 _ds/_d 로 복원한다.
+let CONFIG = null;
+let HOME_OBFUSCATION = null;
+let VWORLD_API_KEY = 'VWORLD_API_KEY';
+let OVERVIEW_PATH = 'assets/data/track-overview.json';
+let DEFAULT_BASEMAP = 'osm';
+let baseLayers = null;
 
-// 경량 미리보기(overview) 좌표 파일. scripts/build-track-overview.js 로 생성됨.
-// GPX 원본(수천~수만 포인트)을 전부 내려받는 대신, 여기서 미리 단순화해둔
-// 좌표(트랙당 최대 ~220개)만 먼저 그려서 첫 화면을 즉시 띄우고, 정밀 경로는
-// 유휴 시간에 순차적으로(또는 클릭 시 즉시) 백그라운드로 불러온다.
-const OVERVIEW_PATH = 'assets/data/track-overview.json';
+const DEFAULT_MANIFEST_PATH = 'tracks.json';
+const BASEMAP_STORAGE_KEY = 'ridingArchive.basemap';
 
 const map = L.map('map').setView([36.5, 127.5], 7);
 const searchInput = document.getElementById('search-input');
@@ -69,27 +54,40 @@ let allTracks = [];
 let activeTrackPath = null;
 let detailLoadedCount = 0;
 
+async function loadAppConfig() {
+    const response = await fetch(`./config.json?t=${Date.now()}`);
+    if (!response.ok) {
+        throw new Error(`config.json 로드 실패: ${response.status}`);
+    }
+    return response.json();
+}
+
+function applyAppConfig(raw) {
+    const K = 0x5C;
+    CONFIG = {
+        owner: _ds(raw.github.owner, K),
+        repo: _ds(raw.github.repo, K),
+        branch: _ds(raw.github.branch, K),
+        manifestPath: _ds(raw.github.manifestPath, K)
+    };
+
+    HOME_OBFUSCATION = {
+        center: _d(raw.homeObfuscation.center, 0xA5),
+        radiusKm: raw.homeObfuscation.radiusKm,
+        count: raw.homeObfuscation.count,
+        seed: raw.homeObfuscation.seed
+    };
+
+    VWORLD_API_KEY = (raw.vworld && raw.vworld.apiKey) || 'VWORLD_API_KEY';
+    OVERVIEW_PATH = raw.overviewPath || OVERVIEW_PATH;
+    DEFAULT_BASEMAP = raw.defaultBasemap || DEFAULT_BASEMAP;
+}
+
 // --- 배경지도 선택 (OSM / VWorld) --------------------------------------------
-// 브이월드(VWorld, 국토교통부 국토지리정보원) 오픈API 인증키.
-// www.vworld.kr 에서 무료로 발급받은 키로 교체해야 VWorld 타일이 표시됨.
-// 발급 방법은 README.md 참고. 키를 넣기 전까지 VWorld를 선택하면
-// 빈 타일과 함께 안내 문구가 뜨고, OSM은 그대로 잘 동작함.
-// 발급일 2026-09-02 만료일 2027-03-02
-const VWORLD_API_KEY = '47614F6A-9D59-4821-B74E-20FF664055A8';
-const DEFAULT_BASEMAP = 'osm';
-const BASEMAP_STORAGE_KEY = 'ridingArchive.basemap';
-
-const baseLayers = {
-    osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
-    }),
-    vworld: L.tileLayer(`https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_API_KEY}/Base/{z}/{y}/{x}.png`, {
-        attribution: '© VWorld',
-        maxZoom: 19,
-        minZoom: 6
-    })
-};
-
+// 브이월드(VWorld, 국토교통부 국토지리정보원) 오픈API 인증키는 config.json의
+// vworld.apiKey 에서 읽어온다. www.vworld.kr 에서 무료로 발급받은 키로 교체해야
+// VWorld 타일이 표시됨 (발급 방법은 README.md 참고). 키를 넣기 전까지 VWorld를
+// 선택하면 빈 타일과 함께 안내 문구가 뜨고, OSM은 그대로 잘 동작함.
 function setBasemapHint(text) {
     if (!basemapHintEl) return;
     if (!text) {
@@ -101,16 +99,6 @@ function setBasemapHint(text) {
     basemapHintEl.innerText = text;
 }
 
-let vworldTileErrorWarned = false;
-baseLayers.vworld.on('tileerror', () => {
-    if (vworldTileErrorWarned) return;
-    vworldTileErrorWarned = true;
-    console.error('VWorld 타일 로드 실패: main.js 상단 VWORLD_API_KEY를 발급받은 인증키로 교체했는지, 도메인이 등록됐는지 확인하세요.');
-    if (basemapSelect && basemapSelect.value === 'vworld') {
-        setBasemapHint('VWorld 타일을 불러오지 못했습니다. main.js의 VWORLD_API_KEY 설정을 확인하세요 (README 참고).');
-    }
-});
-
 function setBasemap(key) {
     if (!baseLayers[key]) key = DEFAULT_BASEMAP;
 
@@ -121,7 +109,7 @@ function setBasemap(key) {
 
     if (basemapSelect) basemapSelect.value = key;
     setBasemapHint(key === 'vworld' && VWORLD_API_KEY === 'VWORLD_API_KEY'
-        ? 'VWorld를 쓰려면 main.js에 발급받은 API 키를 넣어야 합니다 (README 참고).'
+        ? 'VWorld를 쓰려면 config.json의 vworld.apiKey에 발급받은 API 키를 넣어야 합니다 (README 참고).'
         : '');
 
     try {
@@ -131,17 +119,40 @@ function setBasemap(key) {
     }
 }
 
-let savedBasemap = null;
-try {
-    savedBasemap = localStorage.getItem(BASEMAP_STORAGE_KEY);
-} catch (e) {
-    savedBasemap = null;
-}
+function setupBasemapLayers() {
+    baseLayers = {
+        osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }),
+        vworld: L.tileLayer(`https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_API_KEY}/Base/{z}/{y}/{x}.png`, {
+            attribution: '© VWorld',
+            maxZoom: 19,
+            minZoom: 6
+        })
+    };
 
-setBasemap(baseLayers[savedBasemap] ? savedBasemap : DEFAULT_BASEMAP);
+    let vworldTileErrorWarned = false;
+    baseLayers.vworld.on('tileerror', () => {
+        if (vworldTileErrorWarned) return;
+        vworldTileErrorWarned = true;
+        console.error('VWorld 타일 로드 실패: config.json의 vworld.apiKey를 발급받은 인증키로 교체했는지, 도메인이 등록됐는지 확인하세요.');
+        if (basemapSelect && basemapSelect.value === 'vworld') {
+            setBasemapHint('VWorld 타일을 불러오지 못했습니다. config.json의 vworld.apiKey 설정을 확인하세요 (README 참고).');
+        }
+    });
 
-if (basemapSelect) {
-    basemapSelect.addEventListener('change', () => setBasemap(basemapSelect.value));
+    let savedBasemap = null;
+    try {
+        savedBasemap = localStorage.getItem(BASEMAP_STORAGE_KEY);
+    } catch (e) {
+        savedBasemap = null;
+    }
+
+    setBasemap(baseLayers[savedBasemap] ? savedBasemap : DEFAULT_BASEMAP);
+
+    if (basemapSelect) {
+        basemapSelect.addEventListener('change', () => setBasemap(basemapSelect.value));
+    }
 }
 // ---------------------------------------------------------------------------
 
@@ -201,8 +212,6 @@ function addDecoyRoutes(config) {
     }
     layerGroup.addTo(map);
 }
-
-addDecoyRoutes(HOME_OBFUSCATION);
 // ---------------------------------------------------------------------------
 
 function buildRawFileUrl(path) {
@@ -267,7 +276,8 @@ function setActiveTrack(path) {
 }
 
 async function fetchTrackManifest() {
-    const response = await fetch(`./${CONFIG.manifestPath}?t=${Date.now()}`);
+    const manifestPath = (CONFIG && CONFIG.manifestPath) || DEFAULT_MANIFEST_PATH;
+    const response = await fetch(`./${manifestPath}?t=${Date.now()}`);
 
     if (!response.ok) {
         throw new Error(`tracks.json 로드 실패: ${response.status}`);
@@ -622,4 +632,20 @@ async function init() {
 
 searchInput.addEventListener('input', renderTrackList);
 
-init();
+async function bootstrap() {
+    let raw;
+    try {
+        raw = await loadAppConfig();
+    } catch (e) {
+        console.error(e);
+        statusEl.innerText = 'config.json을 불러오지 못했습니다.';
+        return;
+    }
+
+    applyAppConfig(raw);
+    setupBasemapLayers();
+    addDecoyRoutes(HOME_OBFUSCATION);
+    init();
+}
+
+bootstrap();
