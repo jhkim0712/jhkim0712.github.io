@@ -14,7 +14,7 @@
     "date": "2025-12-13",
     "region": "대만",
     "bike": "Kymco Racing S 150"
-  },  
+  },
   {
     "path": "tracks/2025/12/Morning_Dec_14th_taiwan_Southernmost_Point.gpx",
     "title": "Taiwan - Southernmost Point",
@@ -111,7 +111,7 @@
     "region": "경기 화성",
     "bike": "Yamaha MT-03"
   },
-    {
+  {
     "path": "tracks/2026/06/260613_sapgyo_home.gpx",
     "title": "삽교 서해커피",
     "description": "삽교 서해커피 라이딩",
@@ -157,7 +157,8 @@
     "description": "강릉 - 동해(묵호항) - 정동진 라이딩",
     "date": "2026-07-31",
     "region": "강원 동해",
-    "bike": "Honda NX500"
+    "bike": "Honda NX500",
+    "relive": "https://www.relive.com/ko/view/vXOndPME55q"
   },
   {
     "path": "tracks/2026/08/260801_donghae_return.gpx",
@@ -165,7 +166,8 @@
     "description": "정동진 - 대관령 - 오산 복귀길",
     "date": "2026-08-01",
     "region": "강원 동해",
-    "bike": "Honda NX500"
+    "bike": "Honda NX500",
+    "relive": "https://www.relive.com/ko/view/vMv8zeQePP6"
   },
   {
     "path": "tracks/2026/08/260808_nx500_Initial inspection.gpx",
@@ -181,7 +183,8 @@
     "description": "단양 이끼터널, 고수재, 양방산 전망대",
     "date": "2026-08-15",
     "region": "충북 단양",
-    "bike": "Honda NX500"
+    "bike": "Honda NX500",
+    "relive": "https://www.relive.com/ko/view/vKv2V4Q4P4v"
   },
   {
     "path": "tracks/2026/08/260823_sinjindo.gpx",
