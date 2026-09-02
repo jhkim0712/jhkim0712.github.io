@@ -62,14 +62,88 @@ const map = L.map('map').setView([36.5, 127.5], 7);
 const searchInput = document.getElementById('search-input');
 const trackListEl = document.getElementById('track-list');
 const statusEl = document.getElementById('status');
+const basemapSelect = document.getElementById('basemap-select');
+const basemapHintEl = document.getElementById('basemap-hint');
 
 let allTracks = [];
 let activeTrackPath = null;
 let detailLoadedCount = 0;
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap'
-}).addTo(map);
+// --- 배경지도 선택 (OSM / VWorld) --------------------------------------------
+// 브이월드(VWorld, 국토교통부 국토지리정보원) 오픈API 인증키.
+// www.vworld.kr 에서 무료로 발급받은 키로 교체해야 VWorld 타일이 표시됨.
+// 발급 방법은 README.md 참고. 키를 넣기 전까지 VWorld를 선택하면
+// 빈 타일과 함께 안내 문구가 뜨고, OSM은 그대로 잘 동작함.
+// 발급일 2026-09-02 만료일 2027-03-02
+const VWORLD_API_KEY = '47614F6A-9D59-4821-B74E-20FF664055A8';
+const DEFAULT_BASEMAP = 'osm';
+const BASEMAP_STORAGE_KEY = 'ridingArchive.basemap';
+
+const baseLayers = {
+    osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }),
+    vworld: L.tileLayer(`https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_API_KEY}/Base/{z}/{y}/{x}.png`, {
+        attribution: '© VWorld',
+        maxZoom: 19,
+        minZoom: 6
+    })
+};
+
+function setBasemapHint(text) {
+    if (!basemapHintEl) return;
+    if (!text) {
+        basemapHintEl.hidden = true;
+        basemapHintEl.innerText = '';
+        return;
+    }
+    basemapHintEl.hidden = false;
+    basemapHintEl.innerText = text;
+}
+
+let vworldTileErrorWarned = false;
+baseLayers.vworld.on('tileerror', () => {
+    if (vworldTileErrorWarned) return;
+    vworldTileErrorWarned = true;
+    console.error('VWorld 타일 로드 실패: main.js 상단 VWORLD_API_KEY를 발급받은 인증키로 교체했는지, 도메인이 등록됐는지 확인하세요.');
+    if (basemapSelect && basemapSelect.value === 'vworld') {
+        setBasemapHint('VWorld 타일을 불러오지 못했습니다. main.js의 VWORLD_API_KEY 설정을 확인하세요 (README 참고).');
+    }
+});
+
+function setBasemap(key) {
+    if (!baseLayers[key]) key = DEFAULT_BASEMAP;
+
+    Object.values(baseLayers).forEach(layer => {
+        if (map.hasLayer(layer)) map.removeLayer(layer);
+    });
+    baseLayers[key].addTo(map);
+
+    if (basemapSelect) basemapSelect.value = key;
+    setBasemapHint(key === 'vworld' && VWORLD_API_KEY === 'VWORLD_API_KEY'
+        ? 'VWorld를 쓰려면 main.js에 발급받은 API 키를 넣어야 합니다 (README 참고).'
+        : '');
+
+    try {
+        localStorage.setItem(BASEMAP_STORAGE_KEY, key);
+    } catch (e) {
+        // 시크릿 모드 등에서 localStorage 접근이 막혀도 지도 전환 자체는 계속 동작해야 함
+    }
+}
+
+let savedBasemap = null;
+try {
+    savedBasemap = localStorage.getItem(BASEMAP_STORAGE_KEY);
+} catch (e) {
+    savedBasemap = null;
+}
+
+setBasemap(baseLayers[savedBasemap] ? savedBasemap : DEFAULT_BASEMAP);
+
+if (basemapSelect) {
+    basemapSelect.addEventListener('change', () => setBasemap(basemapSelect.value));
+}
+// ---------------------------------------------------------------------------
 
 // --- 홈 위치 난독화 디코이 경로 ----------------------------------------------
 function makeSeededRandom(seed) {
