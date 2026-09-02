@@ -28,6 +28,23 @@ jhkim0712.github.io/
 └── README.md
 ```
 
+## 🗺️ 배경지도 선택 (OSM / VWorld)
+
+좌측 패널 검색창 옆 드롭다운에서 배경지도를 OSM(기본값)과 브이월드(VWorld) 중 골라 바로 바꿀
+수 있다. 선택은 브라우저 `localStorage`에 저장돼서 다음에 열어도 유지된다.
+
+VWorld는 국토교통부 국토지리정보원이 제공하는 국가 공간정보 서비스라, 군사시설 등 보안시설
+주변을 국가 공간정보 보안관리규정에 따라 이미 자체적으로 마스킹해서 서비스한다.
+
+VWorld를 쓰려면 API 키가 필요하다 (키가 없어도 OSM은 그대로 잘 동작함):
+
+1. [www.vworld.kr](https://www.vworld.kr) 회원가입 후 **오픈API → 인증키 신청**.
+2. 신청 시 서비스 URL에 `https://jhkim0712.github.io` (로컬 테스트도 하려면 `http://localhost`
+   또는 사용 중인 포트도 함께) 를 등록.
+3. 발급받은 인증키를 [assets/js/main.js](assets/js/main.js) 상단의 `VWORLD_API_KEY` 값에
+   붙여넣기. (심사는 보통 당일~1일 내 완료됨)
+4. 키를 넣기 전까지 드롭다운에서 VWorld를 선택하면 타일 대신 안내 문구가 뜬다.
+
 ## 🏍️ 새 GPX 트랙 추가하기
 
 1. `tracks/연도/월/` 아래에 GPX 파일을 추가.

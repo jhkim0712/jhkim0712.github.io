@@ -14,7 +14,12 @@
     <div id="status">경로를 불러오는 중...</div>
     <div class="toolbar">
         <input id="search-input" class="search-input" type="text" placeholder="제목, 지역, 설명으로 검색" />
+        <select id="basemap-select" class="basemap-select" title="배경지도 선택">
+            <option value="osm">OSM 지도</option>
+            <option value="vworld">브이월드</option>
+        </select>
     </div>
+    <div id="basemap-hint" class="basemap-hint" hidden></div>
     <div class="track-list" id="track-list"></div>
 </div>
 
