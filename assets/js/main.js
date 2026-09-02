@@ -301,6 +301,7 @@ async function fetchTrackManifest() {
             relive: item.relive || '',
             url: buildRawFileUrl(item.path),
             overview: null,
+            distanceKm: null,
             layer: null,
             detail: false,
             detailPromise: null,
@@ -344,9 +345,16 @@ function createTrackListItem(track) {
     item.appendChild(titleEl);
     item.appendChild(metaEl);
 
-    if (track.bike || track.relive) {
+    if (track.bike || track.relive || track.distanceKm != null) {
         const badgeRow = document.createElement('div');
         badgeRow.className = 'track-badge-row';
+
+        if (track.distanceKm != null) {
+            const distEl = document.createElement('span');
+            distEl.className = 'track-distance';
+            distEl.innerText = `🛣️ ${track.distanceKm.toFixed(1)}km`;
+            badgeRow.appendChild(distEl);
+        }
 
         if (track.bike) {
             const bikeEl = document.createElement('span');
@@ -533,6 +541,12 @@ function loadFullDetail(track) {
             track.detail = true;
             attachLayerEvents(track, layer, tooltipText);
 
+            // 개요 데이터가 없어 distanceKm이 비어있던 트랙은 leaflet-gpx가 계산한
+            // 거리로 채워준다 (다음 검색/렌더링 때 목록에 반영됨)
+            if (track.distanceKm == null && typeof layer.get_distance === 'function') {
+                track.distanceKm = Math.round((layer.get_distance() / 1000) * 10) / 10;
+            }
+
             if (previousLayer && previousLayer !== layer && map.hasLayer(previousLayer)) {
                 map.removeLayer(previousLayer);
             }
@@ -605,6 +619,7 @@ async function init() {
             const overview = overviewData[track.path];
             if (overview && Array.isArray(overview.points) && overview.points.length >= 2) {
                 track.overview = overview;
+                track.distanceKm = typeof overview.distanceKm === 'number' ? overview.distanceKm : null;
                 createOverviewLayer(track);
                 queuedForBackground.push(track);
             } else {

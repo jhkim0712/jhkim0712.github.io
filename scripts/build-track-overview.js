@@ -134,6 +134,26 @@ function simplifyToTarget(points, targetMax, initialEpsilon) {
     return simplified;
 }
 
+// 두 좌표 사이의 실제 지표면 거리(km) - 하버사인 공식
+function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371; // 지구 평균 반지름(km)
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// 트랙 전체(단순화 전) 포인트를 순서대로 이어 총 이동거리(km) 계산
+function computeTotalDistanceKm(points) {
+    let total = 0;
+    for (let i = 1; i < points.length; i++) {
+        total += haversineKm(points[i - 1][0], points[i - 1][1], points[i][0], points[i][1]);
+    }
+    return total;
+}
+
 function computeBounds(points) {
     let minLat = Infinity, minLon = Infinity, maxLat = -Infinity, maxLon = -Infinity;
     for (const [lat, lon] of points) {
@@ -175,17 +195,21 @@ function main() {
 
         const simplified = simplifyToTarget(points, TARGET_MAX_POINTS, INITIAL_EPSILON_M);
         const bounds = computeBounds(points);
+        // 단순화 전 전체 포인트 기준으로 계산해야 실제 이동거리에 가까움
+        // (단순화된 좌표로 계산하면 코너를 잘라서 짧게 나옴)
+        const distanceKm = Math.round(computeTotalDistanceKm(points) * 10) / 10;
 
         overview[entry.path] = {
             points: simplified.map(([lat, lon]) => [roundCoord(lat), roundCoord(lon)]),
             bounds,
-            originalCount: points.length
+            originalCount: points.length,
+            distanceKm
         };
 
         totalOriginal += points.length;
         totalSimplified += simplified.length;
 
-        console.log(`${entry.path}: ${points.length} -> ${simplified.length} points`);
+        console.log(`${entry.path}: ${points.length} -> ${simplified.length} points, ${distanceKm}km`);
     }
 
     fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
