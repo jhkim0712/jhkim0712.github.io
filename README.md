@@ -17,6 +17,7 @@
 ```
 jhkim0712.github.io/
 ├── index.html                          # 메인 페이지
+├── config.json                         # 퍼시스턴트 설정값(GitHub 정보, API 키 등)
 ├── tracks.json                         # 라이딩 트랙 메타데이터(제목/설명/relive 링크 등)
 ├── tracks/                             # GPX 원본 파일
 ├── assets/
@@ -27,6 +28,29 @@ jhkim0712.github.io/
 ├── .github/workflows/build-track-overview.yml  # push 시 위 스크립트 자동 실행
 └── README.md
 ```
+
+## ⚙️ 설정값 (config.json)
+
+API 키, GitHub 저장소 정보 등 배포마다 달라질 수 있는 퍼시스턴트 설정값은 코드가 아니라
+루트의 [config.json](config.json)에 모아뒀다. 페이지 로드 시 이 파일을 제일 먼저 읽어온 뒤
+지도/트랙 목록을 초기화한다.
+
+```json
+{
+  "github": { "owner": "...", "repo": "...", "branch": "...", "manifestPath": "..." },
+  "homeObfuscation": { "center": "...", "radiusKm": 0.2, "count": 6, "seed": 12345 },
+  "vworld": { "apiKey": "...", "issuedAt": "...", "expiresAt": "..." },
+  "overviewPath": "assets/data/track-overview.json",
+  "defaultBasemap": "osm"
+}
+```
+
+- `github.*`, `homeObfuscation.center`는 raw GPX가 걸려있는 저장소 경로와 실제 홈 위치를
+  view-source로 바로 못 읽게 XOR + Base64로 인코딩되어 있다 (진짜 보안이 아니라 가벼운
+  난독화다 — `assets/js/main.js`의 `_ds`/`_d` 함수가 로드 시점에 복원함).
+- `vworld.apiKey`는 평문이다. VWorld/Naver/Google Maps류 클라이언트 키는 애초에 브라우저에
+  노출되는 게 정상적인 사용 방식이고(비밀키가 아니라 도메인 제한으로 보호), 그래서 다른
+  값처럼 인코딩하지 않았다.
 
 ## 🗺️ 배경지도 선택 (OSM / VWorld)
 
@@ -41,8 +65,8 @@ VWorld를 쓰려면 API 키가 필요하다 (키가 없어도 OSM은 그대로 �
 1. [www.vworld.kr](https://www.vworld.kr) 회원가입 후 **오픈API → 인증키 신청**.
 2. 신청 시 서비스 URL에 `https://jhkim0712.github.io` (로컬 테스트도 하려면 `http://localhost`
    또는 사용 중인 포트도 함께) 를 등록.
-3. 발급받은 인증키를 [assets/js/main.js](assets/js/main.js) 상단의 `VWORLD_API_KEY` 값에
-   붙여넣기. (심사는 보통 당일~1일 내 완료됨)
+3. 발급받은 인증키를 [config.json](config.json)의 `vworld.apiKey` 값에 붙여넣기.
+   (심사는 보통 당일~1일 내 완료됨)
 4. 키를 넣기 전까지 드롭다운에서 VWorld를 선택하면 타일 대신 안내 문구가 뜬다.
 
 ## 🏍️ 새 GPX 트랙 추가하기
