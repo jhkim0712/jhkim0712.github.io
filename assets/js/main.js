@@ -162,98 +162,6 @@ function getTrackYear(track) {
     return match ? match[1] : '기타';
 }
 
-// --- Relive 기록(동영상/사진) 오버레이 -------------------------------------
-let reliveOverlayEl = null;
-
-function ensureReliveOverlay() {
-    if (reliveOverlayEl) return reliveOverlayEl;
-
-    const overlay = document.createElement('div');
-    overlay.className = 'relive-overlay';
-    overlay.hidden = true;
-
-    const modal = document.createElement('div');
-    modal.className = 'relive-modal';
-
-    const header = document.createElement('div');
-    header.className = 'relive-modal-header';
-
-    const title = document.createElement('div');
-    title.className = 'relive-modal-title';
-    title.id = 'relive-modal-title';
-
-    const closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.className = 'relive-modal-close';
-    closeBtn.innerText = '✕';
-    closeBtn.setAttribute('aria-label', '닫기');
-    closeBtn.onclick = closeReliveOverlay;
-
-    header.appendChild(title);
-    header.appendChild(closeBtn);
-
-    const body = document.createElement('div');
-    body.className = 'relive-modal-body';
-
-    const iframe = document.createElement('iframe');
-    iframe.id = 'relive-modal-iframe';
-    iframe.allow = 'autoplay; fullscreen; picture-in-picture';
-    iframe.allowFullscreen = true;
-    iframe.loading = 'lazy';
-    body.appendChild(iframe);
-
-    const footer = document.createElement('div');
-    footer.className = 'relive-modal-footer';
-
-    const hint = document.createElement('span');
-    hint.innerText = '화면이 보이지 않으면 새 탭에서 열어보세요.';
-
-    const link = document.createElement('a');
-    link.id = 'relive-modal-link';
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    link.innerText = 'Relive.cc에서 새 탭으로 열기 ↗';
-
-    footer.appendChild(hint);
-    footer.appendChild(link);
-
-    modal.appendChild(header);
-    modal.appendChild(body);
-    modal.appendChild(footer);
-    overlay.appendChild(modal);
-
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) closeReliveOverlay();
-    });
-
-    document.body.appendChild(overlay);
-    reliveOverlayEl = overlay;
-    return overlay;
-}
-
-function openReliveOverlay(track) {
-    if (!track.relive) return;
-    const overlay = ensureReliveOverlay();
-    overlay.querySelector('#relive-modal-title').innerText = `🎬 ${getDisplayTitle(track)}`;
-    overlay.querySelector('#relive-modal-iframe').src = track.relive;
-    overlay.querySelector('#relive-modal-link').href = track.relive;
-    overlay.hidden = false;
-    document.addEventListener('keydown', handleReliveOverlayKeydown);
-}
-
-function closeReliveOverlay() {
-    if (!reliveOverlayEl || reliveOverlayEl.hidden) return;
-    reliveOverlayEl.hidden = true;
-    // 닫을 때 iframe 소스를 비워 재생 중인 영상/오디오를 정지시킴
-    reliveOverlayEl.querySelector('#relive-modal-iframe').src = '';
-    document.removeEventListener('keydown', handleReliveOverlayKeydown);
-}
-
-function handleReliveOverlayKeydown(e) {
-    if (e.key === 'Escape') closeReliveOverlay();
-}
-// ---------------------------------------------------------------------------
-
 function matchesSearch(track, keyword) {
     if (!keyword) return true;
     const haystack = [
@@ -364,15 +272,17 @@ function createTrackListItem(track) {
         }
 
         if (track.relive) {
-            const reliveBtn = document.createElement('button');
-            reliveBtn.type = 'button';
-            reliveBtn.className = 'track-relive-btn';
-            reliveBtn.innerText = '🎬 Relive 보기';
-            reliveBtn.onclick = (e) => {
-                e.stopPropagation();
-                openReliveOverlay(track);
-            };
-            badgeRow.appendChild(reliveBtn);
+            // relive.com/.cc는 X-Frame-Options: DENY 로 자기 자신 외의 페이지에서
+            // iframe으로 여는 걸 막아둬서(실제로 확인됨) 지도 위 오버레이로는 띄울 수
+            // 없음. 그래서 새 탭에서 바로 여는 링크로 제공.
+            const reliveLink = document.createElement('a');
+            reliveLink.className = 'track-relive-btn';
+            reliveLink.href = track.relive;
+            reliveLink.target = '_blank';
+            reliveLink.rel = 'noopener noreferrer';
+            reliveLink.innerText = '🎬 Relive 새 탭에서 보기 ↗';
+            reliveLink.onclick = (e) => e.stopPropagation();
+            badgeRow.appendChild(reliveLink);
         }
 
         item.appendChild(badgeRow);
