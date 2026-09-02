@@ -1,0 +1,43 @@
+name: Build track overview
+
+# tracks.json 이나 GPX 파일이 바뀔 때마다 assets/data/track-overview.json
+# (첫 화면용 경량 미리보기 좌표)을 자동으로 재생성해서 커밋함.
+# 사람이 수동으로 scripts/build-track-overview.js 를 잊고 안 돌려도
+# 페이지 성능이 계속 유지되도록 하기 위함.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tracks.json'
+      - 'tracks/**.gpx'
+      - 'scripts/build-track-overview.js'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-overview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate track-overview.json
+        run: node scripts/build-track-overview.js
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- assets/data/track-overview.json; then
+            echo "No changes to track-overview.json"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add assets/data/track-overview.json
+          git commit -m "chore: regenerate track-overview.json [skip ci]"
+          git push
