@@ -203,5 +203,14 @@
     "region": "충남 아산",
     "bike": "Honda NX500",
     "relive": "https://www.relive.com/ko/view/vQvy51m8xKv"
+  },
+  {
+    "path":"tracks/2026/08/260905_pyeongchang.gpx",
+    "title": "강원 평창 육백마지기",
+    "description": "평창 육백마지기 - 태기산 당일치기",
+    "date": "2026-09-05",
+    "region": "강원 평창",
+    "bike": "Honda NX500",
+    "relive": "https://www.relive.com/ko/view/v8qVGp9G97v"
   }
 ]
