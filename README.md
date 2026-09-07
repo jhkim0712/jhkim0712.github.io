@@ -38,7 +38,7 @@ API 키, GitHub 저장소 정보 등 배포마다 달라질 수 있는 퍼시스
 ```json
 {
   "github": { "owner": "...", "repo": "...", "branch": "...", "manifestPath": "..." },
-  "homeObfuscation": { "center": "...", "radiusKm": 0.2, "count": 6, "seed": 12345 },
+  "homeObfuscation": { "center": "...", "radiusKm": 0.2 },
   "vworld": { "apiKey": "...", "issuedAt": "...", "expiresAt": "..." },
   "overviewPath": "assets/data/track-overview.json",
   "defaultBasemap": "osm"
@@ -51,6 +51,23 @@ API 키, GitHub 저장소 정보 등 배포마다 달라질 수 있는 퍼시스
 - `vworld.apiKey`는 평문이다. VWorld/Naver/Google Maps류 클라이언트 키는 애초에 브라우저에
   노출되는 게 정상적인 사용 방식이고(비밀키가 아니라 도메인 제한으로 보호), 그래서 다른
   값처럼 인코딩하지 않았다.
+
+## 🏠 홈 위치 보호
+
+`homeObfuscation.center`(홈 위치 부근) 반경 `radiusKm` 안에 들어오는 경로 구간은 지도에
+아예 그리지 않는다(그 지점에서 선이 끊김). 예전에는 가짜 디코이 경로를 그 주변에 덧그려
+눈속임하는 방식이었는데, 어차피 raw GPX나 `track-overview.json`을 직접 열어보면 실좌표가
+그대로 드러나 실효성이 없어 걷어냈다.
+
+- `assets/data/track-overview.json`(첫 화면용 개요 좌표)은 `scripts/build-track-overview.js`가
+  생성 시점에 홈 반경 내 좌표를 미리 제거하므로, 이 파일을 직접 열어봐도 반경 안쪽 좌표는
+  나오지 않는다.
+- 원본 GPX(`tracks/**.gpx`)는 raw.githubusercontent.com으로 직접 fetch되는 원본 파일이라
+  전체 좌표를 그대로 담고 있다. 대신 `assets/js/main.js`가 정밀 경로를 불러온 직후
+  (`maskHomeAreaOnLayer`) 반경 내 구간을 지도에서 제거하고 그린다.
+- 즉 지도 화면과 개요 데이터 파일에서는 홈 반경이 보이지 않지만, 원본 GPX 파일 자체를
+  받아보면 여전히 실좌표가 남아있다 — 저장소가 공개(public)인 이상 완전히 막을 방법은
+  없고, 이 정도가 정적 사이트에서 할 수 있는 실질적인 선이다.
 
 ## 🗺️ 배경지도 선택 (OSM / VWorld)
 

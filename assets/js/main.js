@@ -8,7 +8,7 @@ function _ds(s, k) {
     return out;
 }
 
-// 홈 위치 보호용 디코이(가짜) 경로 좌표 복원
+// 홈 위치 보호용 반경 좌표 복원
 // - center: 가리고 싶은 실제 좌표 부근(약간 어긋난 중심점을 사용)
 //   * 평문 좌표 노출 방지를 위해 config.json에는 XOR + Base64로 인코딩되어 보관됨
 function _d(s, k) {
@@ -21,12 +21,12 @@ function _d(s, k) {
     return [view.getFloat64(0, false), view.getFloat64(8, false)];
 }
 
-// 퍼시스턴트 설정값(GitHub 정보, 홈 위치 디코이, API 키 등)은 전부 루트의
+// 퍼시스턴트 설정값(GitHub 정보, 홈 위치 반경, API 키 등)은 전부 루트의
 // config.json 에서 읽어온다. 형식은 config.json 참고:
 //
 //   {
 //     "github": { "owner": "...", "repo": "...", "branch": "...", "manifestPath": "..." },
-//     "homeObfuscation": { "center": "...", "radiusKm": 0.2, "count": 6, "seed": 12345 },
+//     "homeObfuscation": { "center": "...", "radiusKm": 0.2 },
 //     "vworld": { "apiKey": "...", "issuedAt": "...", "expiresAt": "..." },
 //     "overviewPath": "assets/data/track-overview.json",
 //     "defaultBasemap": "osm"
@@ -77,9 +77,7 @@ function applyAppConfig(raw) {
 
     HOME_OBFUSCATION = {
         center: _d(raw.homeObfuscation.center, 0xA5),
-        radiusKm: raw.homeObfuscation.radiusKm,
-        count: raw.homeObfuscation.count,
-        seed: raw.homeObfuscation.seed
+        radiusKm: raw.homeObfuscation.radiusKm
     };
 
     VWORLD_API_KEY = (raw.vworld && raw.vworld.apiKey) || 'VWORLD_API_KEY';
@@ -218,61 +216,52 @@ function setupViewModeToggle() {
 }
 // ---------------------------------------------------------------------------
 
-// --- 홈 위치 난독화 디코이 경로 ----------------------------------------------
-function makeSeededRandom(seed) {
-    let s = seed >>> 0;
-    return function() {
-        s = (s * 1664525 + 1013904223) >>> 0;
-        return s / 0xffffffff;
-    };
+// --- 홈 위치 반경 내 경로 숨김 ------------------------------------------------
+// 가짜 디코이 경로로 홈 위치를 가리는 대신, 홈 반경(HOME_OBFUSCATION) 안에 들어오는
+// 구간은 지도에 아예 그리지 않는다(그 지점에서 선을 끊음). 개요 경로는 빌드 스크립트
+// (scripts/build-track-overview.js)가 반경 내 좌표를 미리 제거해두므로, 여기서는
+// 원본 GPX를 그대로 불러오는 정밀 경로만 다듬으면 된다.
+function isNearHome(lat, lng) {
+    if (!HOME_OBFUSCATION) return false;
+    const [centerLat, centerLng] = HOME_OBFUSCATION.center;
+    return L.latLng(lat, lng).distanceTo(L.latLng(centerLat, centerLng)) <= HOME_OBFUSCATION.radiusKm * 1000;
 }
 
-function offsetLatLng(centerLat, centerLng, dxKm, dyKm) {
-    const dLat = dyKm / 111.32;
-    const dLng = dxKm / (111.32 * Math.cos(centerLat * Math.PI / 180));
-    return [centerLat + dLat, centerLng + dLng];
-}
+// 좌표 배열(중첩 배열도 허용)에서 홈 반경 내 지점을 제거하고, 끊어진 자리마다
+// 구간을 나눠서 돌려준다(구간 사이는 선으로 잇지 않음)
+function splitAwayFromHome(latlngs) {
+    if (latlngs.length > 0 && Array.isArray(latlngs[0])) {
+        return latlngs.reduce((acc, sub) => acc.concat(splitAwayFromHome(sub)), []);
+    }
 
-function buildDecoyPath(rand, center, radiusKm) {
-    const startAngle = rand() * Math.PI * 2;
-    const startR = (0.3 + rand() * 0.7) * radiusKm;
-    let x = Math.cos(startAngle) * startR;
-    let y = Math.sin(startAngle) * startR;
-
-    const points = [offsetLatLng(center[0], center[1], x, y)];
-    const steps = 25 + Math.floor(rand() * 25);
-    let heading = rand() * Math.PI * 2;
-    const stepKm = (0.15 + rand() * 0.25);
-
-    for (let i = 0; i < steps; i++) {
-        heading += (rand() - 0.5) * 0.9;
-        x += Math.cos(heading) * stepKm;
-        y += Math.sin(heading) * stepKm;
-        // 반경을 너무 벗어나면 중심 쪽으로 살짝 끌어당김
-        const dist = Math.sqrt(x * x + y * y);
-        if (dist > radiusKm) {
-            x *= radiusKm / dist * 0.95;
-            y *= radiusKm / dist * 0.95;
-            heading += Math.PI;
+    const segments = [];
+    let current = [];
+    latlngs.forEach(pt => {
+        const lat = Array.isArray(pt) ? pt[0] : pt.lat;
+        const lng = Array.isArray(pt) ? pt[1] : pt.lng;
+        if (isNearHome(lat, lng)) {
+            if (current.length > 1) segments.push(current);
+            current = [];
+        } else {
+            current.push(pt);
         }
-        points.push(offsetLatLng(center[0], center[1], x, y));
-    }
-    return points;
+    });
+    if (current.length > 1) segments.push(current);
+    return segments;
 }
 
-function addDecoyRoutes(config) {
-    const rand = makeSeededRandom(config.seed);
-    const layerGroup = L.layerGroup();
-    for (let i = 0; i < config.count; i++) {
-        const latlngs = buildDecoyPath(rand, config.center, config.radiusKm);
-        L.polyline(latlngs, {
-            color: '#3388ff',
-            weight: 4,
-            opacity: 0.55,
-            interactive: false
-        }).addTo(layerGroup);
-    }
-    layerGroup.addTo(map);
+// 정밀 경로(leaflet-gpx) 레이어 내부의 선(폴리라인)들에서 홈 반경 구간을 제거
+function maskHomeAreaOnLayer(gpxLayer) {
+    if (!HOME_OBFUSCATION) return;
+    gpxLayer.eachLayer(child => {
+        if (typeof child.getLatLngs !== 'function' || typeof child.setLatLngs !== 'function') return;
+        const segments = splitAwayFromHome(child.getLatLngs());
+        if (segments.length === 0) {
+            gpxLayer.removeLayer(child);
+        } else {
+            child.setLatLngs(segments);
+        }
+    });
 }
 // ---------------------------------------------------------------------------
 
@@ -530,13 +519,26 @@ function attachLayerEvents(track, layer, tooltipText) {
     });
 }
 
+// track-overview.json의 points는 구간 배열([[ [lat,lon], ... ], ...]) 형식이다(홈 반경으로
+// 끊긴 구간이 여러 개일 수 있음). 재실행 전의 예전 파일(단일 좌표 배열)도 함께 지원한다.
+function normalizeOverviewSegments(points) {
+    if (!Array.isArray(points) || points.length === 0) return [];
+    return Array.isArray(points[0][0]) ? points : [points];
+}
+
+function hasUsableOverviewPoints(overview) {
+    if (!overview || !Array.isArray(overview.points)) return false;
+    return normalizeOverviewSegments(overview.points).some(seg => Array.isArray(seg) && seg.length >= 2);
+}
+
 // 단순화된 좌표로 가벼운 미리보기 폴리라인을 그림 (즉시 표시용)
 function createOverviewLayer(track) {
-    const layer = L.polyline(track.overview.points, {
+    const segments = normalizeOverviewSegments(track.overview.points);
+    const layer = L.featureGroup(segments.map(seg => L.polyline(seg, {
         color: '#3388ff',
         weight: 4,
         opacity: 0.65
-    });
+    })));
     track.layer = layer;
     attachLayerEvents(track, layer);
     updateTrackLayerVisibility(track);
@@ -599,6 +601,11 @@ function loadFullDetail(track) {
         gpxLayer.on('loaded', function(e) {
             const layer = e.target;
             const previousLayer = track.layer;
+
+            // 원본 GPX는 홈 반경 내 좌표를 그대로 담고 있으므로, 지도에 표시하기 전에
+            // 그 구간을 잘라낸다 (거리 계산에는 영향 없음 - get_distance()는 파싱 시점에
+            // 이미 계산돼있음)
+            maskHomeAreaOnLayer(layer);
 
             track.layer = layer;
             track.detail = true;
@@ -682,7 +689,7 @@ async function init() {
 
         allTracks.forEach((track, index) => {
             const overview = overviewData[track.path];
-            if (overview && Array.isArray(overview.points) && overview.points.length >= 2) {
+            if (hasUsableOverviewPoints(overview)) {
                 track.overview = overview;
                 track.distanceKm = typeof overview.distanceKm === 'number' ? overview.distanceKm : null;
                 createOverviewLayer(track);
@@ -725,7 +732,6 @@ async function bootstrap() {
     applyAppConfig(raw);
     setupBasemapLayers();
     setupViewModeToggle();
-    addDecoyRoutes(HOME_OBFUSCATION);
     init();
 }
 

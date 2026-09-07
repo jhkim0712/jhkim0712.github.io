@@ -7,9 +7,7 @@
   },
   "homeObfuscation": {
     "center": "5ecxY0qYn7jl+mEwrjD63Q==",
-    "radiusKm": 0.2,
-    "count": 6,
-    "seed": 20260512
+    "radiusKm": 0.2
   },
   "vworld": {
     "apiKey": "47614F6A-9D59-4821-B74E-20FF664055A8",

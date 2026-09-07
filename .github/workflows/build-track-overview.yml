@@ -1,9 +1,9 @@
 name: Build track overview
 
-# tracks.json 이나 GPX 파일이 바뀔 때마다 assets/data/track-overview.json
-# (첫 화면용 경량 미리보기 좌표)을 자동으로 재생성해서 커밋함.
-# 사람이 수동으로 scripts/build-track-overview.js 를 잊고 안 돌려도
-# 페이지 성능이 계속 유지되도록 하기 위함.
+# tracks.json, GPX 파일, config.json(홈 위치 반경 등)이 바뀔 때마다
+# assets/data/track-overview.json(첫 화면용 경량 미리보기 좌표)을 자동으로
+# 재생성해서 커밋함. 사람이 수동으로 scripts/build-track-overview.js 를
+# 잊고 안 돌려도 페이지 성능/홈 위치 마스킹이 계속 유지되도록 하기 위함.
 
 on:
   push:
@@ -12,6 +12,7 @@ on:
       - 'tracks.json'
       - 'tracks/**.gpx'
       - 'scripts/build-track-overview.js'
+      - 'config.json'
   workflow_dispatch:
 
 permissions:
