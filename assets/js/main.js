@@ -42,6 +42,7 @@ let baseLayers = null;
 
 const DEFAULT_MANIFEST_PATH = 'tracks.json';
 const BASEMAP_STORAGE_KEY = 'ridingArchive.basemap';
+const VIEW_MODE_STORAGE_KEY = 'ridingArchive.viewMode';
 
 const map = L.map('map').setView([36.5, 127.5], 7);
 const searchInput = document.getElementById('search-input');
@@ -49,10 +50,13 @@ const trackListEl = document.getElementById('track-list');
 const statusEl = document.getElementById('status');
 const basemapSelect = document.getElementById('basemap-select');
 const basemapHintEl = document.getElementById('basemap-hint');
+const viewModeToggleEl = document.getElementById('view-mode-toggle');
 
 let allTracks = [];
 let activeTrackPath = null;
 let detailLoadedCount = 0;
+// 'all' = 모든 경로를 지도에 표시, 'selected' = 선택(활성)된 경로만 표시
+let viewMode = 'all';
 
 async function loadAppConfig() {
     const response = await fetch(`./config.json?t=${Date.now()}`);
@@ -152,6 +156,64 @@ function setupBasemapLayers() {
 
     if (basemapSelect) {
         basemapSelect.addEventListener('change', () => setBasemap(basemapSelect.value));
+    }
+}
+// ---------------------------------------------------------------------------
+
+// --- 경로 표시 범위 (전체 경로 보기 / 선택 경로만 보기) -----------------------
+// 처음 로드 시에는 모든 경로를 지도에 보여주고, 사용자가 원하면 선택(활성)된
+// 경로 하나만 남기고 나머지는 지도에서 숨길 수 있게 한다.
+function updateTrackLayerVisibility(track) {
+    if (!track.layer) return;
+    const shouldShow = viewMode === 'all' || track.path === activeTrackPath;
+    const isShown = map.hasLayer(track.layer);
+    if (shouldShow && !isShown) {
+        track.layer.addTo(map);
+    } else if (!shouldShow && isShown) {
+        map.removeLayer(track.layer);
+    }
+}
+
+function applyViewModeToAllTracks() {
+    allTracks.forEach(updateTrackLayerVisibility);
+    if (viewMode === 'selected') {
+        const activeTrack = allTracks.find(track => track.path === activeTrackPath);
+        if (activeTrack) fitToTrack(activeTrack);
+    }
+}
+
+function setViewMode(mode) {
+    viewMode = mode === 'selected' ? 'selected' : 'all';
+
+    if (viewModeToggleEl) {
+        viewModeToggleEl.querySelectorAll('.view-mode-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === viewMode);
+        });
+    }
+
+    applyViewModeToAllTracks();
+
+    try {
+        localStorage.setItem(VIEW_MODE_STORAGE_KEY, viewMode);
+    } catch (e) {
+        // 시크릿 모드 등에서 localStorage 접근이 막혀도 모드 전환 자체는 계속 동작해야 함
+    }
+}
+
+function setupViewModeToggle() {
+    let savedViewMode = null;
+    try {
+        savedViewMode = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+    } catch (e) {
+        savedViewMode = null;
+    }
+    viewMode = savedViewMode === 'selected' ? 'selected' : 'all';
+
+    if (viewModeToggleEl) {
+        viewModeToggleEl.querySelectorAll('.view-mode-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === viewMode);
+            btn.addEventListener('click', () => setViewMode(btn.dataset.mode));
+        });
     }
 }
 // ---------------------------------------------------------------------------
@@ -261,17 +323,18 @@ function matchesSearch(track, keyword) {
 function setActiveTrack(path) {
     activeTrackPath = path;
     allTracks.forEach(track => {
-        if (!track.layer) return;
         const isActive = track.path === activeTrackPath;
         const item = track.listItem;
         if (item) {
             item.classList.toggle('active', isActive);
         }
+        if (!track.layer) return;
         track.layer.setStyle({
             color: isActive ? '#ff5a36' : '#3388ff',
             weight: isActive ? 7 : 4,
             opacity: isActive ? 1 : 0.65
         });
+        updateTrackLayerVisibility(track);
     });
 }
 
@@ -476,7 +539,7 @@ function createOverviewLayer(track) {
     });
     track.layer = layer;
     attachLayerEvents(track, layer);
-    layer.addTo(map);
+    updateTrackLayerVisibility(track);
 }
 
 function fitToTrack(track) {
@@ -552,6 +615,8 @@ function loadFullDetail(track) {
             }
             if (activeTrackPath === track.path) {
                 setActiveTrack(activeTrackPath);
+            } else {
+                updateTrackLayerVisibility(track);
             }
 
             detailLoadedCount++;
@@ -659,6 +724,7 @@ async function bootstrap() {
 
     applyAppConfig(raw);
     setupBasemapLayers();
+    setupViewModeToggle();
     addDecoyRoutes(HOME_OBFUSCATION);
     init();
 }
