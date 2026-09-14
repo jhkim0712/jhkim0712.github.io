@@ -18,6 +18,7 @@
         <select id="basemap-select" class="basemap-select" title="배경지도 선택">
             <option value="vworld">브이월드</option>
             <option value="osm">OSM 지도</option>
+            <option value="naver">네이버지도</option>
         </select>
     </div>
     <div class="view-mode-toggle" id="view-mode-toggle" role="group" aria-label="경로 표시 범위">
@@ -29,6 +30,7 @@
 </div>
 
 <div id="map"></div>
+<div id="map-naver" hidden></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>

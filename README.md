@@ -40,6 +40,7 @@ API 키, GitHub 저장소 정보 등 배포마다 달라질 수 있는 퍼시스
   "github": { "owner": "...", "repo": "...", "branch": "...", "manifestPath": "..." },
   "homeObfuscation": { "center": "...", "radiusKm": 0.2 },
   "vworld": { "apiKey": "...", "issuedAt": "...", "expiresAt": "..." },
+  "naver": { "apiKeyId": "...", "issuedAt": "...", "expiresAt": "..." },
   "overviewPath": "assets/data/track-overview.json",
   "defaultBasemap": "osm"
 }
@@ -48,9 +49,9 @@ API 키, GitHub 저장소 정보 등 배포마다 달라질 수 있는 퍼시스
 - `github.*`, `homeObfuscation.center`는 raw GPX가 걸려있는 저장소 경로와 실제 홈 위치를
   view-source로 바로 못 읽게 XOR + Base64로 인코딩되어 있다 (진짜 보안이 아니라 가벼운
   난독화다 — `assets/js/main.js`의 `_ds`/`_d` 함수가 로드 시점에 복원함).
-- `vworld.apiKey`는 평문이다. VWorld/Naver/Google Maps류 클라이언트 키는 애초에 브라우저에
-  노출되는 게 정상적인 사용 방식이고(비밀키가 아니라 도메인 제한으로 보호), 그래서 다른
-  값처럼 인코딩하지 않았다.
+- `vworld.apiKey`, `naver.apiKeyId`는 평문이다. VWorld/Naver/Google Maps류 클라이언트 키는
+  애초에 브라우저에 노출되는 게 정상적인 사용 방식이고(비밀키가 아니라 도메인 제한으로
+  보호), 그래서 다른 값처럼 인코딩하지 않았다.
 
 ## 🏠 홈 위치 보호
 
@@ -69,10 +70,10 @@ API 키, GitHub 저장소 정보 등 배포마다 달라질 수 있는 퍼시스
   받아보면 여전히 실좌표가 남아있다 — 저장소가 공개(public)인 이상 완전히 막을 방법은
   없고, 이 정도가 정적 사이트에서 할 수 있는 실질적인 선이다.
 
-## 🗺️ 배경지도 선택 (OSM / VWorld)
+## 🗺️ 배경지도 선택 (OSM / VWorld / 네이버지도)
 
-좌측 패널 검색창 옆 드롭다운에서 배경지도를 OSM(기본값)과 브이월드(VWorld) 중 골라 바로 바꿀
-수 있다. 선택은 브라우저 `localStorage`에 저장돼서 다음에 열어도 유지된다.
+좌측 패널 검색창 옆 드롭다운에서 배경지도를 OSM(기본값)·브이월드(VWorld)·네이버지도 중 골라
+바로 바꿀 수 있다. 선택은 브라우저 `localStorage`에 저장돼서 다음에 열어도 유지된다.
 
 VWorld는 국토교통부 국토지리정보원이 제공하는 국가 공간정보 서비스라, 군사시설 등 보안시설
 주변을 국가 공간정보 보안관리규정에 따라 이미 자체적으로 마스킹해서 서비스한다.
@@ -85,6 +86,27 @@ VWorld를 쓰려면 API 키가 필요하다 (키가 없어도 OSM은 그대로 �
 3. 발급받은 인증키를 [config.json](config.json)의 `vworld.apiKey` 값에 붙여넣기.
    (심사는 보통 당일~1일 내 완료됨)
 4. 키를 넣기 전까지 드롭다운에서 VWorld를 선택하면 타일 대신 안내 문구가 뜬다.
+
+### 네이버지도
+
+네이버(NCP, Naver Cloud Platform)는 OSM/VWorld처럼 Leaflet에 바로 꽂을 수 있는 공개 XYZ
+타일을 제공하지 않는다. 대신 네이버 Maps JS SDK(v3)가 자체적으로 그리는 별도의 지도 div를
+쓴다. 그래서 네이버지도를 선택하면 화면 뒤에서 Leaflet 지도(`#map`)는 그대로 살아있는 채로
+숨겨지고, 네이버 SDK가 그리는 지도(`#map-naver`)가 앞에 보이는 방식으로 동작한다. 트랙 경로는
+Leaflet이 이미 파싱해 둔 좌표를 그대로 재사용해 네이버 폴리라인으로 옮겨 그린다(GPX를 두 번
+파싱하지 않음).
+
+네이버지도를 쓰려면 Client ID가 필요하다 (키가 없어도 OSM/VWorld는 그대로 잘 동작함):
+
+1. [console.ncloud.com](https://console.ncloud.com) 가입 후 **AI·NAVER API → Application →
+   Application 등록**.
+2. 등록 시 **Maps > Web Dynamic Map** 서비스를 활성화하고, Web 서비스 URL에
+   `https://jhkim0712.github.io` (로컬 테스트도 하려면 `http://localhost` 또는 사용 중인
+   포트도 함께) 를 등록.
+3. 발급받은 **Client ID**를 [config.json](config.json)의 `naver.apiKeyId` 값에 붙여넣기.
+   (Client Secret은 필요 없음 — Maps JS SDK는 Client ID만 사용)
+4. 키를 넣기 전까지, 또는 도메인이 등록되지 않아 인증에 실패하면 드롭다운에서 네이버지도를
+   선택해도 지도 대신 안내 문구가 뜨고 자동으로 OSM으로 돌아간다.
 
 ## 🏍️ 새 GPX 트랙 추가하기
 

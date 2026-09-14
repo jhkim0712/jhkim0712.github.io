@@ -28,6 +28,7 @@ function _d(s, k) {
 //     "github": { "owner": "...", "repo": "...", "branch": "...", "manifestPath": "..." },
 //     "homeObfuscation": { "center": "...", "radiusKm": 0.2 },
 //     "vworld": { "apiKey": "...", "issuedAt": "...", "expiresAt": "..." },
+//     "naver": { "apiKeyId": "...", "issuedAt": "...", "expiresAt": "..." },
 //     "overviewPath": "assets/data/track-overview.json",
 //     "defaultBasemap": "osm"
 //   }
@@ -36,15 +37,23 @@ function _d(s, k) {
 let CONFIG = null;
 let HOME_OBFUSCATION = null;
 let VWORLD_API_KEY = 'VWORLD_API_KEY';
+let NAVER_API_KEY_ID = 'NAVER_API_KEY_ID';
 let OVERVIEW_PATH = 'assets/data/track-overview.json';
 let DEFAULT_BASEMAP = 'osm';
 let baseLayers = null;
+// 'leaflet'(OSM/VWorld) 또는 'naver' — 현재 화면에 보이는 지도 엔진
+let activeEngine = 'leaflet';
+let naverMap = null;
+let naverTooltip = null;
+let naverSdkLoadPromise = null;
 
 const DEFAULT_MANIFEST_PATH = 'tracks.json';
 const BASEMAP_STORAGE_KEY = 'ridingArchive.basemap';
 const VIEW_MODE_STORAGE_KEY = 'ridingArchive.viewMode';
 
 const map = L.map('map').setView([36.5, 127.5], 7);
+const mapEl = map.getContainer();
+const naverMapEl = document.getElementById('map-naver');
 const searchInput = document.getElementById('search-input');
 const trackListEl = document.getElementById('track-list');
 const statusEl = document.getElementById('status');
@@ -81,15 +90,29 @@ function applyAppConfig(raw) {
     };
 
     VWORLD_API_KEY = (raw.vworld && raw.vworld.apiKey) || 'VWORLD_API_KEY';
+    NAVER_API_KEY_ID = (raw.naver && raw.naver.apiKeyId) || 'NAVER_API_KEY_ID';
     OVERVIEW_PATH = raw.overviewPath || OVERVIEW_PATH;
     DEFAULT_BASEMAP = raw.defaultBasemap || DEFAULT_BASEMAP;
 }
 
-// --- 배경지도 선택 (OSM / VWorld) --------------------------------------------
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+}
+
+// --- 배경지도 선택 (OSM / VWorld / 네이버지도) --------------------------------
 // 브이월드(VWorld, 국토교통부 국토지리정보원) 오픈API 인증키는 config.json의
 // vworld.apiKey 에서 읽어온다. www.vworld.kr 에서 무료로 발급받은 키로 교체해야
 // VWorld 타일이 표시됨 (발급 방법은 README.md 참고). 키를 넣기 전까지 VWorld를
 // 선택하면 빈 타일과 함께 안내 문구가 뜨고, OSM은 그대로 잘 동작함.
+//
+// 네이버지도는 OSM/VWorld와 달리 Leaflet이 쓸 수 있는 공개 XYZ 타일이 없고,
+// 네이버 Maps JS SDK(v3)가 자체적으로 그리는 별도의 지도 div(#map-naver)로만
+// 제공된다. 그래서 OSM/VWorld ↔ 네이버지도 전환은 Leaflet 타일 교체가 아니라
+// #map / #map-naver 두 div의 표시를 서로 바꾸는 방식으로 동작한다. 트랙 경로는
+// Leaflet 쪽에서 파싱한 좌표(track.layer)를 그대로 재사용해 네이버 폴리라인으로
+// 미러링한다(syncNaverTrack) — GPX를 두 번 파싱하지 않는다.
 function setBasemapHint(text) {
     if (!basemapHintEl) return;
     if (!text) {
@@ -101,18 +124,187 @@ function setBasemapHint(text) {
     basemapHintEl.innerText = text;
 }
 
-function setBasemap(key) {
-    if (!baseLayers[key]) key = DEFAULT_BASEMAP;
+// 네이버 Maps JS SDK를 최초 1회만 <script> 태그로 동적 로드
+function loadNaverSdk() {
+    if (naverSdkLoadPromise) return naverSdkLoadPromise;
 
-    Object.values(baseLayers).forEach(layer => {
-        if (map.hasLayer(layer)) map.removeLayer(layer);
+    naverSdkLoadPromise = new Promise((resolve, reject) => {
+        window.navermap_authFailure = function () {
+            reject(new Error('네이버 지도 인증 실패'));
+        };
+        window.__onNaverMapsReady = () => resolve();
+
+        const script = document.createElement('script');
+        script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${NAVER_API_KEY_ID}&callback=__onNaverMapsReady`;
+        script.onerror = () => reject(new Error('네이버 지도 SDK 로드 실패'));
+        document.head.appendChild(script);
     });
-    baseLayers[key].addTo(map);
+
+    return naverSdkLoadPromise;
+}
+
+// 네이버 지도 인스턴스를 최초 1회만 생성하고, 이미 표시 중인 트랙들을 옮겨 그린다
+async function ensureNaverMap() {
+    if (naverMap) return naverMap;
+    if (!NAVER_API_KEY_ID || NAVER_API_KEY_ID === 'NAVER_API_KEY_ID') {
+        throw new Error('naver.apiKeyId가 설정되지 않음');
+    }
+
+    await loadNaverSdk();
+
+    naverMap = new naver.maps.Map(naverMapEl, {
+        center: new naver.maps.LatLng(36.5, 127.5),
+        zoom: 7
+    });
+    naverTooltip = new naver.maps.InfoWindow({
+        content: '',
+        disableAnchor: true,
+        backgroundColor: 'transparent',
+        borderWidth: 0
+    });
+
+    allTracks.forEach(syncNaverTrack);
+    return naverMap;
+}
+
+// Leaflet 폴리라인(child)들의 좌표를 네이버 LatLng 배열(구간별)로 변환
+function buildNaverPathsFromLeafletLayer(layer) {
+    const paths = [];
+    if (!layer || typeof layer.eachLayer !== 'function') return paths;
+
+    layer.eachLayer(child => {
+        if (typeof child.getLatLngs !== 'function') return;
+        const latlngs = child.getLatLngs();
+        if (latlngs.length === 0) return;
+        const segments = Array.isArray(latlngs[0]) ? latlngs : [latlngs];
+        segments.forEach(seg => {
+            if (seg.length >= 2) paths.push(seg.map(p => new naver.maps.LatLng(p.lat, p.lng)));
+        });
+    });
+
+    return paths;
+}
+
+function applyNaverTrackStyle(track) {
+    if (!track.naverLayer) return;
+    const isActive = activeTrackPath === track.path;
+    track.naverLayer.polylines.forEach(pl => pl.setOptions({
+        strokeColor: isActive ? '#ff5a36' : '#3388ff',
+        strokeWeight: isActive ? 7 : 4,
+        strokeOpacity: isActive ? 1 : 0.65
+    }));
+}
+
+function updateNaverTrackVisibility(track) {
+    if (!track.naverLayer) return;
+    const shouldShow = viewMode === 'all' || track.path === activeTrackPath;
+    track.naverLayer.polylines.forEach(pl => pl.setMap(shouldShow ? naverMap : null));
+}
+
+// 지도 위 경로에 hover 강조·툴팁·클릭 동작을 연결 (attachLayerEvents의 네이버판)
+function attachNaverPolylineEvents(track, polyline) {
+    const text = getTooltipText(track);
+
+    naver.maps.Event.addListener(polyline, 'mouseover', function (e) {
+        const isActive = activeTrackPath === track.path;
+        track.naverLayer.polylines.forEach(pl => pl.setOptions({
+            strokeColor: '#ff5a36',
+            strokeWeight: isActive ? 7 : 6,
+            strokeOpacity: 1
+        }));
+        if (naverTooltip) {
+            naverTooltip.setContent(`<div class="custom-tooltip">${escapeHtml(text)}</div>`);
+            const at = (e && e.coord) || polyline.getPath().getAt(0);
+            naverTooltip.open(naverMap, at);
+        }
+    });
+
+    naver.maps.Event.addListener(polyline, 'mouseout', function () {
+        applyNaverTrackStyle(track);
+        if (naverTooltip) naverTooltip.close();
+    });
+
+    naver.maps.Event.addListener(polyline, 'click', function () {
+        focusTrack(track);
+    });
+}
+
+// track.layer(Leaflet, 이미 홈 반경 마스킹까지 끝난 상태)를 기준으로 네이버
+// 폴리라인을 새로 그린다. 개요→정밀 경로로 교체될 때마다 다시 호출해서 갱신한다.
+function syncNaverTrack(track) {
+    if (!naverMap || !track.layer) return;
+
+    if (track.naverLayer) {
+        track.naverLayer.polylines.forEach(pl => pl.setMap(null));
+    }
+
+    const polylines = buildNaverPathsFromLeafletLayer(track.layer).map(path => new naver.maps.Polyline({
+        path,
+        strokeColor: '#3388ff',
+        strokeWeight: 4,
+        strokeOpacity: 0.65
+    }));
+    polylines.forEach(pl => attachNaverPolylineEvents(track, pl));
+
+    track.naverLayer = { polylines };
+    applyNaverTrackStyle(track);
+    updateNaverTrackVisibility(track);
+}
+
+function naverFitToTrack(track) {
+    if (!naverMap || !track.naverLayer || track.naverLayer.polylines.length === 0) return;
+    const bounds = new naver.maps.LatLngBounds();
+    let hasPoint = false;
+    track.naverLayer.polylines.forEach(pl => {
+        pl.getPath().forEach(pt => {
+            bounds.extend(pt);
+            hasPoint = true;
+        });
+    });
+    if (hasPoint) naverMap.fitBounds(bounds);
+}
+
+async function setBasemap(key) {
+    if (key !== 'naver' && !baseLayers[key]) key = DEFAULT_BASEMAP;
+
+    if (key === 'naver') {
+        try {
+            await ensureNaverMap();
+        } catch (e) {
+            console.error('네이버 지도를 불러오지 못했습니다:', e);
+            key = DEFAULT_BASEMAP;
+        }
+    }
+
+    activeEngine = key === 'naver' ? 'naver' : 'leaflet';
+
+    if (activeEngine === 'naver') {
+        mapEl.hidden = true;
+        naverMapEl.hidden = false;
+
+        const activeTrack = allTracks.find(t => t.path === activeTrackPath);
+        if (activeTrack) naverFitToTrack(activeTrack);
+    } else {
+        naverMapEl.hidden = true;
+        mapEl.hidden = false;
+        // #map이 hidden인 동안에는 크기를 0으로 인식하므로 다시 보일 때 갱신해줘야 함
+        setTimeout(() => map.invalidateSize(), 0);
+
+        Object.values(baseLayers).forEach(layer => {
+            if (map.hasLayer(layer)) map.removeLayer(layer);
+        });
+        baseLayers[key].addTo(map);
+    }
 
     if (basemapSelect) basemapSelect.value = key;
-    setBasemapHint(key === 'vworld' && VWORLD_API_KEY === 'VWORLD_API_KEY'
-        ? 'VWorld를 쓰려면 config.json의 vworld.apiKey에 발급받은 API 키를 넣어야 합니다 (README 참고).'
-        : '');
+
+    if (key === 'vworld' && VWORLD_API_KEY === 'VWORLD_API_KEY') {
+        setBasemapHint('VWorld를 쓰려면 config.json의 vworld.apiKey에 발급받은 API 키를 넣어야 합니다 (README 참고).');
+    } else if (key === 'naver' && NAVER_API_KEY_ID === 'NAVER_API_KEY_ID') {
+        setBasemapHint('네이버지도를 쓰려면 config.json의 naver.apiKeyId에 발급받은 Client ID를 넣어야 합니다 (README 참고).');
+    } else {
+        setBasemapHint('');
+    }
 
     try {
         localStorage.setItem(BASEMAP_STORAGE_KEY, key);
@@ -150,7 +342,7 @@ function setupBasemapLayers() {
         savedBasemap = null;
     }
 
-    setBasemap(baseLayers[savedBasemap] ? savedBasemap : DEFAULT_BASEMAP);
+    setBasemap((savedBasemap === 'naver' || baseLayers[savedBasemap]) ? savedBasemap : DEFAULT_BASEMAP);
 
     if (basemapSelect) {
         basemapSelect.addEventListener('change', () => setBasemap(basemapSelect.value));
@@ -162,6 +354,8 @@ function setupBasemapLayers() {
 // 처음 로드 시에는 모든 경로를 지도에 보여주고, 사용자가 원하면 선택(활성)된
 // 경로 하나만 남기고 나머지는 지도에서 숨길 수 있게 한다.
 function updateTrackLayerVisibility(track) {
+    updateNaverTrackVisibility(track);
+
     if (!track.layer) return;
     const shouldShow = viewMode === 'all' || track.path === activeTrackPath;
     const isShown = map.hasLayer(track.layer);
@@ -317,6 +511,7 @@ function setActiveTrack(path) {
         if (item) {
             item.classList.toggle('active', isActive);
         }
+        applyNaverTrackStyle(track);
         if (!track.layer) return;
         track.layer.setStyle({
             color: isActive ? '#ff5a36' : '#3388ff',
@@ -355,6 +550,7 @@ async function fetchTrackManifest() {
             overview: null,
             distanceKm: null,
             layer: null,
+            naverLayer: null,
             detail: false,
             detailPromise: null,
             listItem: null
@@ -542,9 +738,14 @@ function createOverviewLayer(track) {
     track.layer = layer;
     attachLayerEvents(track, layer);
     updateTrackLayerVisibility(track);
+    syncNaverTrack(track);
 }
 
 function fitToTrack(track) {
+    if (activeEngine === 'naver') {
+        naverFitToTrack(track);
+        return;
+    }
     if (track.layer && track.layer.getBounds) {
         const bounds = track.layer.getBounds();
         if (bounds && bounds.isValid()) {
@@ -610,6 +811,7 @@ function loadFullDetail(track) {
             track.layer = layer;
             track.detail = true;
             attachLayerEvents(track, layer, tooltipText);
+            syncNaverTrack(track);
 
             // 개요 데이터가 없어 distanceKm이 비어있던 트랙은 leaflet-gpx가 계산한
             // 거리로 채워준다 (다음 검색/렌더링 때 목록에 반영됨)

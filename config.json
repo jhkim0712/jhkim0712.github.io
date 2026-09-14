@@ -14,6 +14,11 @@
     "issuedAt": "2026-09-02",
     "expiresAt": "2027-03-02"
   },
+  "naver": {
+    "apiKeyId": "NAVER_LEAKED_SECRET_REVOKED",
+    "issuedAt": "2026-09-14",
+    "expiresAt": ""
+  },
   "overviewPath": "assets/data/track-overview.json",
   "defaultBasemap": "osm"
 }

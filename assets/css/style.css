@@ -6,7 +6,7 @@ body, html {
     background: #f6f7fb;
 }
 
-#map {
+#map, #map-naver {
     height: 100vh;
     width: 100%;
     z-index: 1;
