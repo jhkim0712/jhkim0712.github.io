@@ -205,12 +205,21 @@
     "relive": "https://www.relive.com/ko/view/vQvy51m8xKv"
   },
   {
-    "path":"tracks/2026/08/260905_pyeongchang.gpx",
+    "path": "tracks/2026/09/260905_pyeongchang.gpx",
     "title": "강원 평창 육백마지기",
     "description": "평창 육백마지기 - 태기산 당일치기",
     "date": "2026-09-05",
     "region": "강원 평창",
     "bike": "Honda NX500",
     "relive": "https://www.relive.com/ko/view/v8qVGp9G97v"
+  },
+  {
+    "path": "tracks/2026/09/260912_sapgyo_mallipobeach_seohaecoffee.gpx",
+    "title": "태안 만리포 바리",
+    "description": "삽교 - 만리포 - 서해커피 무복바리",
+    "date": "2026-09-12",
+    "region": "충남 태안",
+    "bike": "Honda NX500",
+    "relive": "https://www.relive.com/ko/view/vAOZVD15goO"
   }
 ]
