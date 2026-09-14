@@ -265,13 +265,16 @@ function naverFitToTrack(track) {
 }
 
 async function setBasemap(key) {
+    const requestedKey = key;
     if (key !== 'naver' && !baseLayers[key]) key = DEFAULT_BASEMAP;
 
+    let naverError = null;
     if (key === 'naver') {
         try {
             await ensureNaverMap();
         } catch (e) {
             console.error('네이버 지도를 불러오지 못했습니다:', e);
+            naverError = e;
             key = DEFAULT_BASEMAP;
         }
     }
@@ -298,10 +301,12 @@ async function setBasemap(key) {
 
     if (basemapSelect) basemapSelect.value = key;
 
-    if (key === 'vworld' && VWORLD_API_KEY === 'VWORLD_API_KEY') {
+    if (requestedKey === 'naver' && naverError) {
+        setBasemapHint(NAVER_API_KEY_ID === 'NAVER_API_KEY_ID'
+            ? '네이버지도를 쓰려면 config.json의 naver.apiKeyId에 발급받은 Client ID를 넣어야 합니다 (README 참고).'
+            : '네이버 지도를 불러오지 못했습니다. config.json의 naver.apiKeyId와 NCP 콘솔의 Web 서비스 URL 등록을 확인하세요 (README 참고, 자세한 원인은 콘솔 로그 참고).');
+    } else if (key === 'vworld' && VWORLD_API_KEY === 'VWORLD_API_KEY') {
         setBasemapHint('VWorld를 쓰려면 config.json의 vworld.apiKey에 발급받은 API 키를 넣어야 합니다 (README 참고).');
-    } else if (key === 'naver' && NAVER_API_KEY_ID === 'NAVER_API_KEY_ID') {
-        setBasemapHint('네이버지도를 쓰려면 config.json의 naver.apiKeyId에 발급받은 Client ID를 넣어야 합니다 (README 참고).');
     } else {
         setBasemapHint('');
     }
