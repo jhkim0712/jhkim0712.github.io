@@ -221,5 +221,14 @@
     "region": "충남 태안",
     "bike": "Honda NX500",
     "relive": "https://www.relive.com/ko/view/vAOZVD15goO"
+  },
+  {
+    "path": "tracks/2026/09/260919_chungjuho.gpx",
+    "title": "충주호 바리",
+    "description": "충주호 갔는데 배탈 이슈로 인하여 중간에 복귀함.",
+    "date": "2026-09-19",
+    "region": "충북 충주",
+    "bike": "Honda NX500",
+    "relive": "https://www.relive.com/ko/view/v8qVGnNZe7v"
   }
 ]
