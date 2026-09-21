@@ -230,5 +230,14 @@
     "region": "충북 충주",
     "bike": "Honda NX500",
     "relive": "https://www.relive.com/ko/view/v8qVGnNZe7v"
+  },
+  {
+    "path": "tracks/2026/09//260920_yongin_redercity_sihwanarae.gpx",
+    "title": "용인 - 시화나래",
+    "description": "용인 라이더시티에 부츠사러 갔다가 맞는 사이즈 없어서, 시화나래휴게소 들렸다가 복귀",
+    "date": "2026-09-20",
+    "region": "경기 시흥",
+    "bike": "Honda NX500",
+    "relive": "https://www.relive.com/ko/view/v4OGz9EKjmv"
   }
 ]
