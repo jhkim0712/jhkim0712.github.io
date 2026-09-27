@@ -232,12 +232,30 @@
     "relive": "https://www.relive.com/ko/view/v8qVGnNZe7v"
   },
   {
-    "path": "tracks/2026/09//260920_yongin_redercity_sihwanarae.gpx",
+    "path": "tracks/2026/09/260920_yongin_redercity_sihwanarae.gpx",
     "title": "용인 - 시화나래",
     "description": "용인 라이더시티에 부츠사러 갔다가 맞는 사이즈 없어서, 시화나래휴게소 들렸다가 복귀",
     "date": "2026-09-20",
     "region": "경기 시흥",
     "bike": "Honda NX500",
     "relive": "https://www.relive.com/ko/view/v4OGz9EKjmv"
+  },
+  {
+    "path": "tracks/2026/09/260926_chungju_danyang.gpx",
+    "title": "충주호 - 제천 탄지리 - 단양 청령포",
+    "description": "충주호 게악 지나서 탄지리 카페에서 쉬었다가, 단양 카페산, 청령포 찍고 복귀",
+    "date": "2026-09-26",
+    "region": "충북 충주, 충북 단양, 강원도 영월",
+    "bike": "Honda NX500",
+    "relive": "https://www.relive.com/view/v26MDr3GKEO"
+  },
+  {
+    "path": "tracks/2026/09/260927_sapgyo_jeongokport.gpx",
+    "title": "삽교호 - 전곡항",
+    "description": "삽교 들렸다가 전곡항 바리. 궁평항 지나가는 방조제에서 많은 라이더를 만남.",
+    "date": "2026-09-27",
+    "region": "충남 당진, 경기 화성",
+    "bike": "Honda NX500",
+    "relive": "https://www.relive.com/view/v36ADxrnnZO"
   }
 ]
