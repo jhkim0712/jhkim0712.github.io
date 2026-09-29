@@ -250,6 +250,28 @@ h2 {
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
+/* 선택된 경로 위 진행 방향 화살표 (Leaflet divIcon / 네이버 Marker 공용) */
+.direction-arrow-icon {
+    background: none;
+    border: none;
+    pointer-events: none;
+}
+
+.direction-arrow {
+    width: 14px;
+    height: 14px;
+    transform-origin: 50% 50%;
+}
+
+.direction-arrow svg {
+    display: block;
+    fill: #ffffff;
+    stroke: #b8321a;
+    stroke-width: 1.2;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.35));
+}
+
 @media (max-width: 768px) {
     .ui-panel {
         left: 12px;

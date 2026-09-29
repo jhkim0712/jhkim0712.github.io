@@ -164,25 +164,31 @@ async function ensureNaverMap() {
     });
 
     allTracks.forEach(syncNaverTrack);
+    naver.maps.Event.addListener(naverMap, 'idle', updateNaverDirectionArrows);
+    updateNaverDirectionArrows();
     return naverMap;
 }
 
-// Leaflet 폴리라인(child)들의 좌표를 네이버 LatLng 배열(구간별)로 변환
-function buildNaverPathsFromLeafletLayer(layer) {
-    const paths = [];
-    if (!layer || typeof layer.eachLayer !== 'function') return paths;
+// Leaflet 레이어 안의 폴리라인(child)들을 구간별 L.LatLng 배열로 펼침
+function getLayerSegments(layer) {
+    const segments = [];
+    if (!layer || typeof layer.eachLayer !== 'function') return segments;
 
     layer.eachLayer(child => {
         if (typeof child.getLatLngs !== 'function') return;
         const latlngs = child.getLatLngs();
         if (latlngs.length === 0) return;
-        const segments = Array.isArray(latlngs[0]) ? latlngs : [latlngs];
-        segments.forEach(seg => {
-            if (seg.length >= 2) paths.push(seg.map(p => new naver.maps.LatLng(p.lat, p.lng)));
+        (Array.isArray(latlngs[0]) ? latlngs : [latlngs]).forEach(seg => {
+            if (seg.length >= 2) segments.push(seg);
         });
     });
 
-    return paths;
+    return segments;
+}
+
+// Leaflet 폴리라인(child)들의 좌표를 네이버 LatLng 배열(구간별)로 변환
+function buildNaverPathsFromLeafletLayer(layer) {
+    return getLayerSegments(layer).map(seg => seg.map(p => new naver.maps.LatLng(p.lat, p.lng)));
 }
 
 function applyNaverTrackStyle(track) {
@@ -355,6 +361,128 @@ function setupBasemapLayers() {
 }
 // ---------------------------------------------------------------------------
 
+// --- 진행 방향 화살표 (선택된 경로에만 표시) ----------------------------------
+// 선택(활성)된 경로 위에 일정한 화면 간격(px)마다 진행 방향 화살표를 올린다.
+// 간격을 화면 픽셀 기준으로 맞추기 위해 지도를 이동/확대할 때마다 다시 계산하고,
+// 확대 시 화살표가 수천 개로 늘지 않도록 현재 화면(+여유) 안의 것만 그린다.
+const DIRECTION_ARROW_SPACING_PX = 90;
+const leafletArrowLayer = L.layerGroup().addTo(map);
+let naverArrowMarkers = [];
+
+// 두 지점 사이 진행 방향(북쪽 0°, 시계방향). 메르카토르는 국소적으로 각도를
+// 보존하므로 경도 차에 cos(위도)만 곱해주면 화면상 방향과 일치한다.
+function getBearingDeg(a, b) {
+    const dx = (b.lng - a.lng) * Math.cos(a.lat * Math.PI / 180);
+    const dy = b.lat - a.lat;
+    return Math.atan2(dx, dy) * 180 / Math.PI;
+}
+
+// 경로를 따라 spacingM(미터)마다 화살표 위치/방향을 계산. inBounds로 화면 밖은 거른다.
+function computeDirectionArrows(segments, spacingM, inBounds) {
+    const arrows = [];
+    let nextAt = spacingM / 2;
+    let walked = 0;
+
+    segments.forEach(seg => {
+        for (let i = 1; i < seg.length; i++) {
+            const a = L.latLng(seg[i - 1]);
+            const b = L.latLng(seg[i]);
+            const len = a.distanceTo(b);
+            if (len === 0) continue;
+
+            while (nextAt <= walked + len) {
+                const t = (nextAt - walked) / len;
+                const lat = a.lat + (b.lat - a.lat) * t;
+                const lng = a.lng + (b.lng - a.lng) * t;
+                if (inBounds(lat, lng)) {
+                    arrows.push({ lat, lng, bearing: getBearingDeg(a, b) });
+                }
+                nextAt += spacingM;
+            }
+            walked += len;
+        }
+    });
+
+    return arrows;
+}
+
+function getDirectionArrowHtml(bearing) {
+    return `<div class="direction-arrow" style="transform: rotate(${bearing.toFixed(1)}deg)">`
+        + '<svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 1 L12.5 12.5 L7 9.5 L1.5 12.5 Z"/></svg>'
+        + '</div>';
+}
+
+// 웹 메르카토르 기준 해당 위도·줌에서 1px이 몇 미터인지
+function metersPerPixel(lat, zoom) {
+    return 40075016.686 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom + 8);
+}
+
+function getActiveTrack() {
+    return allTracks.find(t => t.path === activeTrackPath) || null;
+}
+
+function updateLeafletDirectionArrows() {
+    leafletArrowLayer.clearLayers();
+    const track = getActiveTrack();
+    if (!track || !track.layer || !map.hasLayer(track.layer)) return;
+
+    const center = map.getCenter();
+    const spacingM = DIRECTION_ARROW_SPACING_PX * metersPerPixel(center.lat, map.getZoom());
+    const bounds = map.getBounds().pad(0.2);
+
+    computeDirectionArrows(getLayerSegments(track.layer), spacingM, (lat, lng) => bounds.contains([lat, lng]))
+        .forEach(arrow => {
+            L.marker([arrow.lat, arrow.lng], {
+                icon: L.divIcon({
+                    className: 'direction-arrow-icon',
+                    html: getDirectionArrowHtml(arrow.bearing),
+                    iconSize: [14, 14],
+                    iconAnchor: [7, 7]
+                }),
+                interactive: false,
+                keyboard: false
+            }).addTo(leafletArrowLayer);
+        });
+}
+
+function updateNaverDirectionArrows() {
+    naverArrowMarkers.forEach(m => m.setMap(null));
+    naverArrowMarkers = [];
+    if (!naverMap) return;
+
+    const track = getActiveTrack();
+    if (!track || !track.layer) return;
+
+    const center = naverMap.getCenter();
+    const spacingM = DIRECTION_ARROW_SPACING_PX * metersPerPixel(center.lat(), naverMap.getZoom());
+    const b = naverMap.getBounds();
+    const sw = b.getSW();
+    const ne = b.getNE();
+    const padLat = (ne.lat() - sw.lat()) * 0.2;
+    const padLng = (ne.lng() - sw.lng()) * 0.2;
+    const inBounds = (lat, lng) => lat >= sw.lat() - padLat && lat <= ne.lat() + padLat
+        && lng >= sw.lng() - padLng && lng <= ne.lng() + padLng;
+
+    naverArrowMarkers = computeDirectionArrows(getLayerSegments(track.layer), spacingM, inBounds)
+        .map(arrow => new naver.maps.Marker({
+            map: naverMap,
+            position: new naver.maps.LatLng(arrow.lat, arrow.lng),
+            icon: {
+                content: `<div class="direction-arrow-icon">${getDirectionArrowHtml(arrow.bearing)}</div>`,
+                anchor: new naver.maps.Point(7, 7)
+            },
+            clickable: false
+        }));
+}
+
+function updateDirectionArrows() {
+    updateLeafletDirectionArrows();
+    updateNaverDirectionArrows();
+}
+
+map.on('moveend', updateLeafletDirectionArrows);
+// ---------------------------------------------------------------------------
+
 // --- 경로 표시 범위 (전체 경로 보기 / 선택 경로만 보기) -----------------------
 // 처음 로드 시에는 모든 경로를 지도에 보여주고, 사용자가 원하면 선택(활성)된
 // 경로 하나만 남기고 나머지는 지도에서 숨길 수 있게 한다.
@@ -525,6 +653,7 @@ function setActiveTrack(path) {
         });
         updateTrackLayerVisibility(track);
     });
+    updateDirectionArrows();
 }
 
 async function fetchTrackManifest() {
