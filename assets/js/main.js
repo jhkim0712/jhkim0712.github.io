@@ -50,6 +50,9 @@ let naverSdkLoadPromise = null;
 const DEFAULT_MANIFEST_PATH = 'tracks.json';
 const BASEMAP_STORAGE_KEY = 'ridingArchive.basemap';
 const VIEW_MODE_STORAGE_KEY = 'ridingArchive.viewMode';
+// 사이버펑크 테마 경로 색상 (선택: 네온 옐로, 기본: 네온 시안)
+const ROUTE_COLOR_ACTIVE = '#fcee0a';
+const ROUTE_COLOR_IDLE = '#00f0ff';
 
 const map = L.map('map').setView([36.5, 127.5], 7);
 const mapEl = map.getContainer();
@@ -195,7 +198,7 @@ function applyNaverTrackStyle(track) {
     if (!track.naverLayer) return;
     const isActive = activeTrackPath === track.path;
     track.naverLayer.polylines.forEach(pl => pl.setOptions({
-        strokeColor: isActive ? '#ff5a36' : '#3388ff',
+        strokeColor: isActive ? ROUTE_COLOR_ACTIVE : ROUTE_COLOR_IDLE,
         strokeWeight: isActive ? 7 : 4,
         strokeOpacity: isActive ? 1 : 0.65
     }));
@@ -214,7 +217,7 @@ function attachNaverPolylineEvents(track, polyline) {
     naver.maps.Event.addListener(polyline, 'mouseover', function (e) {
         const isActive = activeTrackPath === track.path;
         track.naverLayer.polylines.forEach(pl => pl.setOptions({
-            strokeColor: '#ff5a36',
+            strokeColor: ROUTE_COLOR_ACTIVE,
             strokeWeight: isActive ? 7 : 6,
             strokeOpacity: 1
         }));
@@ -246,7 +249,7 @@ function syncNaverTrack(track) {
 
     const polylines = buildNaverPathsFromLeafletLayer(track.layer).map(path => new naver.maps.Polyline({
         path,
-        strokeColor: '#3388ff',
+        strokeColor: ROUTE_COLOR_IDLE,
         strokeWeight: 4,
         strokeOpacity: 0.65
     }));
@@ -647,7 +650,7 @@ function setActiveTrack(path) {
         applyNaverTrackStyle(track);
         if (!track.layer) return;
         track.layer.setStyle({
-            color: isActive ? '#ff5a36' : '#3388ff',
+            color: isActive ? ROUTE_COLOR_ACTIVE : ROUTE_COLOR_IDLE,
             weight: isActive ? 7 : 4,
             opacity: isActive ? 1 : 0.65
         });
@@ -823,7 +826,7 @@ function attachLayerEvents(track, layer, tooltipText) {
     layer.on('mouseover', function() {
         const isActive = activeTrackPath === track.path;
         this.setStyle({
-            color: '#ff5a36',
+            color: ROUTE_COLOR_ACTIVE,
             weight: isActive ? 7 : 6,
             opacity: 1
         });
@@ -837,7 +840,7 @@ function attachLayerEvents(track, layer, tooltipText) {
     layer.on('mouseout', function() {
         const isActive = activeTrackPath === track.path;
         this.setStyle({
-            color: isActive ? '#ff5a36' : '#3388ff',
+            color: isActive ? ROUTE_COLOR_ACTIVE : ROUTE_COLOR_IDLE,
             weight: isActive ? 7 : 4,
             opacity: isActive ? 1 : 0.65
         });
@@ -865,7 +868,7 @@ function hasUsableOverviewPoints(overview) {
 function createOverviewLayer(track) {
     const segments = normalizeOverviewSegments(track.overview.points);
     const layer = L.featureGroup(segments.map(seg => L.polyline(seg, {
-        color: '#3388ff',
+        color: ROUTE_COLOR_IDLE,
         weight: 4,
         opacity: 0.65
     })));
@@ -927,7 +930,7 @@ function loadFullDetail(track) {
                 shadowUrl: null
             },
             polyline_options: {
-                color: '#3388ff',
+                color: ROUTE_COLOR_IDLE,
                 weight: 4,
                 opacity: 0.65
             }

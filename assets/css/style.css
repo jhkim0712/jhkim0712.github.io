@@ -1,79 +1,225 @@
+/* ==========================================================
+   Cyberpunk 2077 테마
+   - 네온 옐로(#fcee0a) / 시안(#00f0ff) / 레드(#ff003c)
+   - 모서리를 깎은 clip-path 패널, 스캔라인, 글리치 타이틀
+   ========================================================== */
+:root {
+    --cp-yellow: #fcee0a;
+    --cp-cyan: #00f0ff;
+    --cp-red: #ff003c;
+    --cp-magenta: #ff2bd6;
+    --cp-green: #39ff88;
+    --cp-bg: #0a0a12;
+    --cp-panel: rgba(12, 12, 22, 0.9);
+    --cp-surface: rgba(20, 22, 36, 0.85);
+    --cp-line: rgba(0, 240, 255, 0.28);
+    --cp-text: #e6f6ff;
+    --cp-muted: #8aa0b4;
+    --cp-font-display: 'Orbitron', 'Rajdhani', 'Pretendard', sans-serif;
+    --cp-font: 'Rajdhani', 'Pretendard', 'Malgun Gothic', sans-serif;
+    --cp-cut: 14px;
+}
+
 body, html {
     margin: 0;
     padding: 0;
     height: 100%;
-    font-family: 'Pretendard', sans-serif;
-    background: #f6f7fb;
+    font-family: var(--cp-font);
+    background: var(--cp-bg);
+    color: var(--cp-text);
 }
 
 #map, #map-naver {
     height: 100vh;
     width: 100%;
     z-index: 1;
+    background: var(--cp-bg);
 }
 
+/* 밝은 배경지도 타일을 어두운 네온 톤으로 반전 (경로/마커 레이어는 영향 없음) */
+.leaflet-tile-pane {
+    filter: invert(1) hue-rotate(185deg) brightness(0.85) contrast(1.15) saturate(0.6);
+}
+
+/* 지도 위 스캔라인 + 비네트 오버레이 */
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    pointer-events: none;
+    background:
+        repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0) 0 2px, rgba(0, 0, 0, 0.12) 2px 3px),
+        radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+.leaflet-container {
+    font-family: var(--cp-font);
+}
+
+.leaflet-bar a,
+.leaflet-control-zoom a {
+    background: var(--cp-panel);
+    color: var(--cp-yellow);
+    border-color: var(--cp-line) !important;
+}
+
+.leaflet-bar a:hover {
+    background: var(--cp-yellow);
+    color: #000;
+}
+
+.leaflet-control-attribution {
+    background: rgba(10, 10, 18, 0.75) !important;
+    color: var(--cp-muted);
+}
+
+.leaflet-control-attribution a {
+    color: var(--cp-cyan);
+}
+
+/* ---------- 패널 ---------- */
 .ui-panel {
     position: absolute;
     top: 20px;
     left: 20px;
     z-index: 1000;
-    width: 340px;
+    width: 360px;
     max-width: calc(100vw - 40px);
-    background: rgba(255, 255, 255, 0.92);
-    padding: 20px;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-    backdrop-filter: blur(10px);
+    padding: 20px 20px 16px;
+    background:
+        linear-gradient(135deg, rgba(252, 238, 10, 0.06), rgba(0, 0, 0, 0) 40%),
+        var(--cp-panel);
+    border-left: 3px solid var(--cp-yellow);
+    clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 24px 100%, 0 calc(100% - 24px));
+    box-shadow: 0 0 40px rgba(0, 240, 255, 0.12);
+    backdrop-filter: blur(8px);
+}
+
+/* 우측 상단 깎인 모서리 장식 */
+.ui-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 34px;
+    height: 34px;
+    background: linear-gradient(225deg, var(--cp-yellow) 0 12px, transparent 12px);
+}
+
+.panel-tag {
+    font-family: var(--cp-font-display);
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    color: var(--cp-red);
+    margin-bottom: 4px;
 }
 
 h2 {
+    position: relative;
     margin: 0 0 8px 0;
-    font-size: 1.25rem;
-    color: #222;
+    font-family: var(--cp-font-display);
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--cp-yellow);
+    text-transform: uppercase;
+    text-shadow: 0 0 8px rgba(252, 238, 10, 0.55);
+}
+
+/* 글리치 효과: 시안/레드 잔상이 간헐적으로 어긋남 */
+.glitch::before,
+.glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+.glitch::before {
+    color: var(--cp-cyan);
+    animation: cp-glitch 3.2s infinite steps(1);
+    clip-path: inset(0 0 55% 0);
+}
+
+.glitch::after {
+    color: var(--cp-red);
+    animation: cp-glitch 2.7s infinite steps(1) reverse;
+    clip-path: inset(50% 0 0 0);
+}
+
+@keyframes cp-glitch {
+    0%, 88%, 100% { transform: translate(0, 0); opacity: 0; }
+    90% { transform: translate(-3px, 1px); opacity: 0.85; }
+    93% { transform: translate(3px, -1px); opacity: 0.85; }
+    96% { transform: translate(-1px, 0); opacity: 0.85; }
 }
 
 #status {
     font-size: 0.85rem;
-    color: #666;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--cp-cyan);
     margin-bottom: 12px;
 }
 
+#status::before {
+    content: '> ';
+    color: var(--cp-yellow);
+}
+
+/* ---------- 입력 / 버튼 ---------- */
 .toolbar {
     display: flex;
     gap: 8px;
     margin-bottom: 12px;
 }
 
-.search-input {
-    flex: 1;
-    border: 1px solid #d1d5db;
-    border-radius: 10px;
-    padding: 10px 12px;
-    font-size: 0.85rem;
-    outline: none;
-    background: #fff;
+.search-input,
+.basemap-select,
+.view-mode-btn {
+    font-family: var(--cp-font);
+    color: var(--cp-text);
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-line);
+    border-radius: 0;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 
-.search-input:focus {
-    border-color: #60a5fa;
-    box-shadow: 0 0 0 3px rgba(96,165,250,0.15);
+.search-input {
+    flex: 1;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    outline: none;
+}
+
+.search-input::placeholder {
+    color: var(--cp-muted);
 }
 
 .basemap-select {
     flex: 0 0 auto;
-    border: 1px solid #d1d5db;
-    border-radius: 10px;
     padding: 10px 8px;
-    font-size: 0.8rem;
-    color: #374151;
-    background: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
     cursor: pointer;
 }
 
-.basemap-select:focus {
+.basemap-select option {
+    background: var(--cp-bg);
+    color: var(--cp-text);
+}
+
+.search-input:focus,
+.basemap-select:focus,
+.view-mode-btn:focus-visible {
     outline: none;
-    border-color: #60a5fa;
-    box-shadow: 0 0 0 3px rgba(96,165,250,0.15);
+    border-color: var(--cp-cyan);
+    box-shadow: inset 0 0 0 1px var(--cp-cyan), 0 0 12px rgba(0, 240, 255, 0.35);
 }
 
 .view-mode-toggle {
@@ -84,49 +230,52 @@ h2 {
 
 .view-mode-btn {
     flex: 1;
-    border: 1px solid #d1d5db;
-    border-radius: 10px;
     padding: 8px 6px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    font-family: inherit;
-    color: #4b5563;
-    background: #fff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--cp-muted);
     cursor: pointer;
-    transition: all 0.15s ease;
 }
 
 .view-mode-btn:hover {
-    border-color: #b8d4ff;
-}
-
-.view-mode-btn:focus-visible {
-    outline: none;
-    border-color: #60a5fa;
-    box-shadow: 0 0 0 3px rgba(96,165,250,0.15);
+    color: var(--cp-text);
+    border-color: var(--cp-yellow);
 }
 
 .view-mode-btn.active {
-    color: #fff;
-    background: #3b82f6;
-    border-color: #3b82f6;
+    color: #000;
+    background: var(--cp-yellow);
+    border-color: var(--cp-yellow);
+    box-shadow: 0 0 14px rgba(252, 238, 10, 0.45);
 }
 
 .basemap-hint {
-    font-size: 0.72rem;
-    color: #b45309;
-    background: #fff7ed;
-    border: 1px solid #fde3c0;
-    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--cp-red);
+    background: rgba(255, 0, 60, 0.08);
+    border-left: 3px solid var(--cp-red);
     padding: 6px 10px;
     margin: -4px 0 12px;
 }
 
+/* ---------- 트랙 목록 ---------- */
 .track-list {
     max-height: 60vh;
     overflow-y: auto;
-    border-top: 1px solid #e5e7eb;
-    padding-top: 10px;
+    border-top: 1px solid var(--cp-line);
+    padding: 10px 4px 0 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--cp-yellow) transparent;
+}
+
+.track-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.track-list::-webkit-scrollbar-thumb {
+    background: var(--cp-yellow);
 }
 
 .track-year-group {
@@ -134,45 +283,68 @@ h2 {
 }
 
 .track-year-heading {
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: #4b5563;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--cp-font-display);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    color: var(--cp-red);
     margin: 10px 0 8px;
     padding-left: 2px;
 }
 
+.track-year-heading::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255, 0, 60, 0.6), transparent);
+}
+
 .track-item {
-    padding: 12px;
+    position: relative;
+    padding: 12px 12px 12px 14px;
     margin-bottom: 10px;
-    border: 1px solid #ececec;
-    border-radius: 12px;
-    background: #fff;
+    background: var(--cp-surface);
+    border: 1px solid rgba(0, 240, 255, 0.15);
+    border-left: 2px solid rgba(0, 240, 255, 0.45);
+    clip-path: polygon(0 0, calc(100% - var(--cp-cut)) 0, 100% var(--cp-cut), 100% 100%, 0 100%);
     cursor: pointer;
-    transition: all 0.18s ease;
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
 .track-item:hover {
-    transform: translateY(-1px);
-    border-color: #b8d4ff;
-    box-shadow: 0 6px 18px rgba(0,123,255,0.08);
+    transform: translateX(3px);
+    border-color: rgba(0, 240, 255, 0.5);
+    border-left-color: var(--cp-cyan);
+    background: rgba(0, 240, 255, 0.07);
 }
 
 .track-item.active {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59,130,246,0.14);
-    background: #f8fbff;
+    border-color: rgba(252, 238, 10, 0.55);
+    border-left: 4px solid var(--cp-yellow);
+    background: linear-gradient(90deg, rgba(252, 238, 10, 0.14), rgba(252, 238, 10, 0.02));
+}
+
+.track-item.active .track-title {
+    color: var(--cp-yellow);
+    text-shadow: 0 0 6px rgba(252, 238, 10, 0.5);
 }
 
 .track-title {
-    font-size: 0.95rem;
+    font-size: 1.02rem;
     font-weight: 700;
-    color: #222;
+    letter-spacing: 0.02em;
+    color: var(--cp-text);
     margin-bottom: 6px;
 }
 
 .track-meta {
-    font-size: 0.72rem;
-    color: #4b5563;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--cp-cyan);
+    opacity: 0.85;
     margin-bottom: 6px;
 }
 
@@ -184,70 +356,75 @@ h2 {
     margin-bottom: 6px;
 }
 
-.track-distance {
-    display: inline-block;
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: #15803d;
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    border-radius: 999px;
-    padding: 2px 8px;
-}
-
-.track-bike {
-    display: inline-block;
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: #1d4ed8;
-    background: #eef4ff;
-    border: 1px solid #dbe6ff;
-    border-radius: 999px;
-    padding: 2px 8px;
-}
-
+.track-distance,
+.track-bike,
 .track-relive-btn {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 0.72rem;
-    font-weight: 600;
-    font-family: inherit;
-    color: #b45309;
-    background: #fff7ed;
-    border: 1px solid #fde3c0;
-    border-radius: 999px;
+    font-family: var(--cp-font);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
     padding: 2px 8px;
+    border: 1px solid currentColor;
+    border-radius: 0;
+    background: transparent;
+    clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
+}
+
+.track-distance {
+    color: var(--cp-green);
+    background: rgba(57, 255, 136, 0.08);
+}
+
+.track-bike {
+    color: var(--cp-cyan);
+    background: rgba(0, 240, 255, 0.08);
+}
+
+.track-relive-btn {
+    color: var(--cp-magenta);
+    background: rgba(255, 43, 214, 0.08);
     cursor: pointer;
     text-decoration: none;
-    transition: background 0.15s ease;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
 .track-relive-btn:hover {
-    background: #ffedd5;
+    color: #000;
+    background: var(--cp-magenta);
 }
 
 .track-description {
-    font-size: 0.78rem;
-    color: #666;
+    font-size: 0.84rem;
+    font-weight: 500;
+    color: var(--cp-muted);
     line-height: 1.5;
 }
 
 .empty-message {
-    font-size: 0.82rem;
-    color: #6b7280;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--cp-red);
     padding: 12px 4px;
 }
 
 .custom-tooltip {
-    background-color: rgba(0, 0, 0, 0.82);
-    color: white;
-    border: none;
-    border-radius: 6px;
+    background-color: rgba(10, 10, 18, 0.92);
+    color: var(--cp-yellow);
+    border: 1px solid var(--cp-yellow);
+    border-radius: 0;
     padding: 6px 10px;
-    font-weight: 600;
-    font-size: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    font-family: var(--cp-font);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    box-shadow: 0 0 12px rgba(252, 238, 10, 0.35);
+}
+
+.leaflet-tooltip.custom-tooltip::before {
+    display: none;
 }
 
 /* 선택된 경로 위 진행 방향 화살표 (Leaflet divIcon / 네이버 Marker 공용) */
@@ -265,11 +442,11 @@ h2 {
 
 .direction-arrow svg {
     display: block;
-    fill: #ffffff;
-    stroke: #b8321a;
-    stroke-width: 1.2;
+    fill: #0a0a12;
+    stroke: var(--cp-yellow);
+    stroke-width: 1.4;
     stroke-linejoin: round;
-    filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.35));
+    filter: drop-shadow(0 0 2px rgba(252, 238, 10, 0.8));
 }
 
 @media (max-width: 768px) {
@@ -284,5 +461,13 @@ h2 {
 
     .track-list {
         max-height: 40vh;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .glitch::before,
+    .glitch::after {
+        animation: none;
+        opacity: 0;
     }
 }
