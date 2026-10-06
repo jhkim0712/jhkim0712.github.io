@@ -257,5 +257,32 @@
     "region": "충남 당진, 경기 화성",
     "bike": "Honda NX500",
     "relive": "https://www.relive.com/view/v36ADxrnnZO"
+  },
+    {
+    "path": "tracks/2026/10/261003_kimgamyeonok_seohaecoffee.gpx",
+    "title": "당진 김가면옥, 아산 서해커피",
+    "description": "김가면옥에서 칼국수 후루룩 하고나서 서해커피 가서 쉬다가 복귀",
+    "date": "2026-10-03",
+    "region": "충남 당진, 충남 아산",
+    "bike": "Honda NX500",
+    "relive": "https://www.relive.com/ko/view/v8qkwpME3Kq"
+  },
+    {
+    "path": "tracks/2026/10/261004_shootingthemepark_jeongokport.gpx",
+    "title": "화성 사격테마파크, 전곡항",
+    "description": "경기도 사격장에서 베레타권총, M4소총 사격 체험하고 전곡항 들렸다가 복귀",
+    "date": "2026-10-04",
+    "region": "경기 화성",
+    "bike": "Honda NX500",
+    "relive": "https://www.relive.com/ko/view/veqzz1Zm37q"
+  },
+    {
+    "path": "tracks/2026/10/261005_icheon_hondaeducationcenter.gpx",
+    "title": "이천 혼다에듀케이션센터 타운라이더 교육",
+    "description": "이천 혼다에듀케이션센터 타운라이더 교육 수료 후 복귀",
+    "date": "2026-10-05",
+    "region": "경기 이천",
+    "bike": "Honda NX500",
+    "relive": "https://www.relive.com/ko/view/v8qVG3BV83v"
   }
 ]
