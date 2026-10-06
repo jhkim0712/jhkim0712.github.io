@@ -50,9 +50,13 @@ let naverSdkLoadPromise = null;
 const DEFAULT_MANIFEST_PATH = 'tracks.json';
 const BASEMAP_STORAGE_KEY = 'ridingArchive.basemap';
 const VIEW_MODE_STORAGE_KEY = 'ridingArchive.viewMode';
-// 사이버펑크 테마 경로 색상 (선택: 네온 옐로, 기본: 네온 시안)
-const ROUTE_COLOR_ACTIVE = '#fcee0a';
-const ROUTE_COLOR_IDLE = '#00f0ff';
+const THEME_STORAGE_KEY = 'ridingArchive.theme';
+// 테마별 경로 색상 (다크: 네온 옐로/시안, 라이트: 밝은 지도 위에서도 잘 보이는 레드/틸)
+const ROUTE_COLORS = {
+    dark: { active: '#fcee0a', idle: '#00f0ff' },
+    light: { active: '#ff003c', idle: '#0089a8' }
+};
+let routeColor = ROUTE_COLORS.dark;
 
 const map = L.map('map').setView([36.5, 127.5], 7);
 const mapEl = map.getContainer();
@@ -63,6 +67,7 @@ const statusEl = document.getElementById('status');
 const basemapSelect = document.getElementById('basemap-select');
 const basemapHintEl = document.getElementById('basemap-hint');
 const viewModeToggleEl = document.getElementById('view-mode-toggle');
+const themeToggleEl = document.getElementById('theme-toggle');
 
 let allTracks = [];
 let activeTrackPath = null;
@@ -198,7 +203,7 @@ function applyNaverTrackStyle(track) {
     if (!track.naverLayer) return;
     const isActive = activeTrackPath === track.path;
     track.naverLayer.polylines.forEach(pl => pl.setOptions({
-        strokeColor: isActive ? ROUTE_COLOR_ACTIVE : ROUTE_COLOR_IDLE,
+        strokeColor: isActive ? routeColor.active : routeColor.idle,
         strokeWeight: isActive ? 7 : 4,
         strokeOpacity: isActive ? 1 : 0.65
     }));
@@ -217,7 +222,7 @@ function attachNaverPolylineEvents(track, polyline) {
     naver.maps.Event.addListener(polyline, 'mouseover', function (e) {
         const isActive = activeTrackPath === track.path;
         track.naverLayer.polylines.forEach(pl => pl.setOptions({
-            strokeColor: ROUTE_COLOR_ACTIVE,
+            strokeColor: routeColor.active,
             strokeWeight: isActive ? 7 : 6,
             strokeOpacity: 1
         }));
@@ -249,7 +254,7 @@ function syncNaverTrack(track) {
 
     const polylines = buildNaverPathsFromLeafletLayer(track.layer).map(path => new naver.maps.Polyline({
         path,
-        strokeColor: ROUTE_COLOR_IDLE,
+        strokeColor: routeColor.idle,
         strokeWeight: 4,
         strokeOpacity: 0.65
     }));
@@ -546,6 +551,40 @@ function setupViewModeToggle() {
 }
 // ---------------------------------------------------------------------------
 
+// --- 라이트/다크 테마 -----------------------------------------------------------
+// <html data-theme>은 index.html의 인라인 스크립트가 첫 페인트 전에 미리 맞춰둔다.
+function setTheme(theme) {
+    const next = theme === 'light' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    routeColor = ROUTE_COLORS[next];
+
+    if (themeToggleEl) {
+        themeToggleEl.checked = next === 'dark';
+    }
+
+    // 이미 그려진 경로(Leaflet/네이버)와 방향 화살표를 새 색상으로 다시 칠함
+    setActiveTrack(activeTrackPath);
+
+    try {
+        localStorage.setItem(THEME_STORAGE_KEY, next);
+    } catch (e) {
+        // localStorage 접근이 막혀도 테마 전환 자체는 계속 동작해야 함
+    }
+}
+
+function setupThemeToggle() {
+    const current = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+    routeColor = ROUTE_COLORS[current];
+
+    if (themeToggleEl) {
+        themeToggleEl.checked = current === 'dark';
+        themeToggleEl.addEventListener('change', () => {
+            setTheme(themeToggleEl.checked ? 'dark' : 'light');
+        });
+    }
+}
+// ---------------------------------------------------------------------------
+
 // --- 홈 위치 반경 내 경로 숨김 ------------------------------------------------
 // 가짜 디코이 경로로 홈 위치를 가리는 대신, 홈 반경(HOME_OBFUSCATION) 안에 들어오는
 // 구간은 지도에 아예 그리지 않는다(그 지점에서 선을 끊음). 개요 경로는 빌드 스크립트
@@ -650,7 +689,7 @@ function setActiveTrack(path) {
         applyNaverTrackStyle(track);
         if (!track.layer) return;
         track.layer.setStyle({
-            color: isActive ? ROUTE_COLOR_ACTIVE : ROUTE_COLOR_IDLE,
+            color: isActive ? routeColor.active : routeColor.idle,
             weight: isActive ? 7 : 4,
             opacity: isActive ? 1 : 0.65
         });
@@ -826,7 +865,7 @@ function attachLayerEvents(track, layer, tooltipText) {
     layer.on('mouseover', function() {
         const isActive = activeTrackPath === track.path;
         this.setStyle({
-            color: ROUTE_COLOR_ACTIVE,
+            color: routeColor.active,
             weight: isActive ? 7 : 6,
             opacity: 1
         });
@@ -840,7 +879,7 @@ function attachLayerEvents(track, layer, tooltipText) {
     layer.on('mouseout', function() {
         const isActive = activeTrackPath === track.path;
         this.setStyle({
-            color: isActive ? ROUTE_COLOR_ACTIVE : ROUTE_COLOR_IDLE,
+            color: isActive ? routeColor.active : routeColor.idle,
             weight: isActive ? 7 : 4,
             opacity: isActive ? 1 : 0.65
         });
@@ -868,7 +907,7 @@ function hasUsableOverviewPoints(overview) {
 function createOverviewLayer(track) {
     const segments = normalizeOverviewSegments(track.overview.points);
     const layer = L.featureGroup(segments.map(seg => L.polyline(seg, {
-        color: ROUTE_COLOR_IDLE,
+        color: routeColor.idle,
         weight: 4,
         opacity: 0.65
     })));
@@ -930,7 +969,7 @@ function loadFullDetail(track) {
                 shadowUrl: null
             },
             polyline_options: {
-                color: ROUTE_COLOR_IDLE,
+                color: routeColor.idle,
                 weight: 4,
                 opacity: 0.65
             }
@@ -1057,6 +1096,7 @@ async function init() {
 }
 
 searchInput.addEventListener('input', renderTrackList);
+setupThemeToggle();
 
 async function bootstrap() {
     let raw;

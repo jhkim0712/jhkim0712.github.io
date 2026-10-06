@@ -18,6 +18,30 @@
     --cp-font-display: 'Orbitron', 'Rajdhani', 'Pretendard', sans-serif;
     --cp-font: 'Rajdhani', 'Pretendard', 'Malgun Gothic', sans-serif;
     --cp-cut: 14px;
+    --cp-title: var(--cp-yellow);
+    --cp-title-shadow: 0 0 8px rgba(252, 238, 10, 0.55);
+    --cp-tile-filter: invert(1) hue-rotate(185deg) brightness(0.85) contrast(1.15) saturate(0.6);
+    --cp-scanline: rgba(0, 0, 0, 0.12);
+    --cp-vignette: rgba(0, 0, 0, 0.55);
+}
+
+/* 라이트 테마: 같은 네온 포인트를 유지하되 밝은 바탕에서 읽히도록 채도·명도를 낮춤 */
+:root[data-theme="light"] {
+    --cp-cyan: #0089a8;
+    --cp-red: #d90036;
+    --cp-magenta: #b8158f;
+    --cp-green: #0b8a4a;
+    --cp-bg: #ecebe3;
+    --cp-panel: rgba(248, 247, 240, 0.93);
+    --cp-surface: rgba(255, 255, 255, 0.85);
+    --cp-line: rgba(0, 137, 168, 0.32);
+    --cp-text: #14161f;
+    --cp-muted: #5b6575;
+    --cp-title: #14161f;
+    --cp-title-shadow: 2px 2px 0 var(--cp-yellow);
+    --cp-tile-filter: none;
+    --cp-scanline: rgba(0, 0, 0, 0.035);
+    --cp-vignette: rgba(0, 0, 0, 0.18);
 }
 
 body, html {
@@ -38,7 +62,7 @@ body, html {
 
 /* 밝은 배경지도 타일을 어두운 네온 톤으로 반전 (경로/마커 레이어는 영향 없음) */
 .leaflet-tile-pane {
-    filter: invert(1) hue-rotate(185deg) brightness(0.85) contrast(1.15) saturate(0.6);
+    filter: var(--cp-tile-filter);
 }
 
 /* 지도 위 스캔라인 + 비네트 오버레이 */
@@ -49,8 +73,8 @@ body::after {
     z-index: 999;
     pointer-events: none;
     background:
-        repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0) 0 2px, rgba(0, 0, 0, 0.12) 2px 3px),
-        radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
+        repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0) 0 2px, var(--cp-scanline) 2px 3px),
+        radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 55%, var(--cp-vignette) 100%);
 }
 
 .leaflet-container {
@@ -60,7 +84,7 @@ body::after {
 .leaflet-bar a,
 .leaflet-control-zoom a {
     background: var(--cp-panel);
-    color: var(--cp-yellow);
+    color: var(--cp-title);
     border-color: var(--cp-line) !important;
 }
 
@@ -70,7 +94,7 @@ body::after {
 }
 
 .leaflet-control-attribution {
-    background: rgba(10, 10, 18, 0.75) !important;
+    background: var(--cp-panel) !important;
     color: var(--cp-muted);
 }
 
@@ -107,13 +131,91 @@ body::after {
     background: linear-gradient(225deg, var(--cp-yellow) 0 12px, transparent 12px);
 }
 
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
 .panel-tag {
     font-family: var(--cp-font-display);
     font-size: 0.6rem;
     font-weight: 600;
     letter-spacing: 0.25em;
     color: var(--cp-red);
-    margin-bottom: 4px;
+}
+
+/* ---------- 라이트/다크 토글 스위치 ---------- */
+.theme-switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 18px; /* 우측 상단 깎인 모서리 장식과 겹치지 않도록 */
+    cursor: pointer;
+    user-select: none;
+}
+
+.theme-switch-label {
+    font-family: var(--cp-font-display);
+    font-size: 0.55rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--cp-muted);
+}
+
+.theme-switch-label::before {
+    content: 'DARK';
+}
+
+:root[data-theme="light"] .theme-switch-label::before {
+    content: 'LIGHT';
+}
+
+.theme-switch-input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+}
+
+.theme-switch-track {
+    position: relative;
+    width: 36px;
+    height: 16px;
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-line);
+    clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.theme-switch-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 10px;
+    background: var(--cp-muted);
+    transition: transform 0.18s ease, background 0.15s ease;
+}
+
+.theme-switch-input:checked + .theme-switch-track {
+    background: rgba(252, 238, 10, 0.12);
+    border-color: var(--cp-yellow);
+}
+
+.theme-switch-input:checked + .theme-switch-track .theme-switch-thumb {
+    transform: translateX(18px);
+    background: var(--cp-yellow);
+    box-shadow: 0 0 8px rgba(252, 238, 10, 0.7);
+}
+
+.theme-switch-input:focus-visible + .theme-switch-track {
+    border-color: var(--cp-cyan);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.45);
 }
 
 h2 {
@@ -123,9 +225,9 @@ h2 {
     font-size: 1.35rem;
     font-weight: 800;
     letter-spacing: 0.04em;
-    color: var(--cp-yellow);
+    color: var(--cp-title);
     text-transform: uppercase;
-    text-shadow: 0 0 8px rgba(252, 238, 10, 0.55);
+    text-shadow: var(--cp-title-shadow);
 }
 
 /* 글리치 효과: 시안/레드 잔상이 간헐적으로 어긋남 */
@@ -328,8 +430,12 @@ h2 {
 }
 
 .track-item.active .track-title {
-    color: var(--cp-yellow);
+    color: var(--cp-title);
     text-shadow: 0 0 6px rgba(252, 238, 10, 0.5);
+}
+
+:root[data-theme="light"] .track-item.active .track-title {
+    text-shadow: none;
 }
 
 .track-title {
@@ -469,5 +575,10 @@ h2 {
     .glitch::after {
         animation: none;
         opacity: 0;
+    }
+
+    .theme-switch-track,
+    .theme-switch-thumb {
+        transition: none;
     }
 }

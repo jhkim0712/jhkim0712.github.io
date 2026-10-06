@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,11 +10,26 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@500;600;700&display=swap">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="assets/css/style.css" />
+    <script>
+        // 저장된 테마를 첫 페인트 전에 적용 (깜빡임 방지)
+        try {
+            if (localStorage.getItem('ridingArchive.theme') === 'light') {
+                document.documentElement.dataset.theme = 'light';
+            }
+        } catch (e) {}
+    </script>
 </head>
 <body>
 
 <div class="ui-panel">
-    <div class="panel-tag">// NIGHT CITY RIDE LOG</div>
+    <div class="panel-header">
+        <div class="panel-tag">// NIGHT CITY RIDE LOG</div>
+        <label class="theme-switch" title="라이트/다크 테마 전환">
+            <span class="theme-switch-label" aria-hidden="true"></span>
+            <input id="theme-toggle" class="theme-switch-input" type="checkbox" role="switch" aria-label="다크 테마" checked />
+            <span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-thumb"></span></span>
+        </label>
+    </div>
     <h2 class="glitch" data-text="투어 로그 아카이브">투어 로그 아카이브</h2>
     <div id="status">경로를 불러오는 중...</div>
     <div class="toolbar">
