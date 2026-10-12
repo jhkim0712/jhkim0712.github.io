@@ -258,7 +258,7 @@
     "bike": "Honda NX500",
     "relive": "https://www.relive.com/view/v36ADxrnnZO"
   },
-    {
+  {
     "path": "tracks/2026/10/261003_kimgamyeonok_seohaecoffee.gpx",
     "title": "당진 김가면옥, 아산 서해커피",
     "description": "김가면옥에서 칼국수 후루룩 하고나서 서해커피 가서 쉬다가 복귀",
@@ -267,7 +267,7 @@
     "bike": "Honda NX500",
     "relive": "https://www.relive.com/ko/view/v8qkwpME3Kq"
   },
-    {
+  {
     "path": "tracks/2026/10/261004_shootingthemepark_jeongokport.gpx",
     "title": "화성 사격테마파크, 전곡항",
     "description": "경기도 사격장에서 베레타권총, M4소총 사격 체험하고 전곡항 들렸다가 복귀",
@@ -276,7 +276,7 @@
     "bike": "Honda NX500",
     "relive": "https://www.relive.com/ko/view/veqzz1Zm37q"
   },
-    {
+  {
     "path": "tracks/2026/10/261005_icheon_hondaeducationcenter.gpx",
     "title": "이천 혼다에듀케이션센터 타운라이더 교육",
     "description": "이천 혼다에듀케이션센터 타운라이더 교육 수료 후 복귀",
@@ -284,5 +284,14 @@
     "region": "경기 이천",
     "bike": "Honda NX500",
     "relive": "https://www.relive.com/ko/view/v8qVG3BV83v"
+  },
+  {
+    "path": "tracks/2026/10/261010_Taebaek_Maebongsan_WindHill.gpx",
+    "title": "매봉산 바람의 언덕",
+    "description": "강원도 태백 매봉산 바람의 언덕 바리. 당일치기라서 찍턴함.",
+    "date": "2026-10-10",
+    "region": "강원도 태백",
+    "bike": "Honda NX500",
+    "relive": "https://www.relive.com/ko/view/vdvm7JEBex6"
   }
 ]
