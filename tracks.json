@@ -293,5 +293,14 @@
     "region": "강원도 태백",
     "bike": "Honda NX500",
     "relive": "https://www.relive.com/ko/view/vdvm7JEBex6"
+  },
+  {
+    "path": "tracks/2026/10/261031_Wonju_Bangye-ri_Ginkgo_Tree.gpx",
+    "title": "원주 반계리 은행나무",
+    "description": "살짝 푸르름이 남아있었지만, 피크 전에 후다닥 보고옴",
+    "date": "2026-10-31",
+    "region": "강원도 원주",
+    "bike": "Honda NX500",
+    "relive": "https://www.relive.com/ko/view/vPOp7k78zRv"
   }
 ]
