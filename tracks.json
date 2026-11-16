@@ -302,5 +302,23 @@
     "region": "강원도 원주",
     "bike": "Honda NX500",
     "relive": "https://www.relive.com/ko/view/vPOp7k78zRv"
+  },
+  {
+    "path": "tracks/2026/11/261107_Boeun_Maltijae_Observatory.gpx",
+    "title": "말티재전망대",
+    "description": "단풍시즌에 말티재 전망대 다녀옴",
+    "date": "2026-11-07",
+    "region": "충북 보은",
+    "bike": "Honda NX500",
+    "relive": "https://www.relive.com/ko/view/v1vj8ZRdxJ6"
+  },
+  {
+    "path": "tracks/2026/11/261115_Dangjin_Kimga_Myeonok.gpx",
+    "title": "당진 김가면욕",
+    "description": "11월 김가면옥 칼국수 바리",
+    "date": "2026-11-17",
+    "region": "충북 당진",
+    "bike": "Honda NX500",
+    "relive": "https://www.relive.com/ko/view/vMv8zzwWnN6"
   }
 ]
